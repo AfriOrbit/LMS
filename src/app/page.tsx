@@ -1,69 +1,151 @@
-import Image from "next/image";
+import Link from 'next/link';
 
-export default function Home() {
+import { Markdown } from '@/components/markdown';
+import { SiteFooter, SiteNav } from '@/components/site-nav';
+import { Badge, ButtonLink, Card } from '@/components/ui/primitives';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { formatMinutes, LEVEL_LABEL } from '@/lib/utils';
+import type { Course } from '@/types/db';
+
+export const revalidate = 300;
+
+const PILLARS = [
+  {
+    title: 'Systems engineering, not slideware',
+    body: 'Power budgets, link budgets, and verification campaigns worked through with real numbers. Every module ends with arithmetic you can defend at a design review.',
+  },
+  {
+    title: 'Hardware in the loop',
+    body: 'Courses are built around the EduSat 1U platform and the IoT edge device. Kits are tracked, issued to a cohort, and returned — with a digital twin when hardware is in transit.',
+  },
+  {
+    title: 'Assessed and certified',
+    body: 'Server-graded assessments, instructor-graded lab reports against a published rubric, and certificates anyone can verify from a code.',
+  },
+];
+
+export default async function HomePage() {
+  const supabase = await createSupabaseServerClient();
+  const { data: courses } = await supabase
+    .from('courses')
+    .select('*')
+    .eq('status', 'published')
+    .order('sort_order')
+    .limit(3)
+    .returns<Course[]>();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <>
+      <SiteNav />
+
+      <main id="main">
+        <section className="starfield relative overflow-hidden border-b border-[var(--border)]">
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
+            <Badge tone="info" className="mb-5">
+              EduSat programme · satellite-to-IoT
+            </Badge>
+            <h1 className="max-w-3xl text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
+              Train engineers to build, fly and operate{' '}
+              <span className="bg-gradient-to-r from-ion-300 to-ember-400 bg-clip-text text-transparent">
+                real small satellites
+              </span>
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--text-muted)]">
+              AfriOrbit&rsquo;s learning platform for the EduSat CubeSat and IoT edge
+              device. Structured tracks, hands-on labs on flight-representative hardware,
+              and assessment rigorous enough that the certificate means something.
+            </p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <ButtonLink href="/catalog" size="lg">
+                Browse the curriculum
+              </ButtonLink>
+              <ButtonLink href="/register" size="lg" variant="secondary">
+                Create an account
+              </ButtonLink>
+            </div>
+
+            <dl className="mt-16 grid grid-cols-2 gap-6 border-t border-[var(--border)] pt-8 sm:grid-cols-4">
+              {[
+                ['3', 'courses in the EduSat track'],
+                ['30+', 'hours of assessed material'],
+                ['1U', 'flight-representative platform'],
+                ['2FA', 'on every account'],
+              ].map(([value, label]) => (
+                <div key={label}>
+                  <dt className="text-2xl font-semibold text-ion-300">{value}</dt>
+                  <dd className="mt-1 text-sm text-[var(--text-muted)]">{label}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
+          <div className="grid gap-6 md:grid-cols-3">
+            {PILLARS.map((pillar) => (
+              <Card key={pillar.title}>
+                <h2 className="text-base font-semibold">{pillar.title}</h2>
+                <p className="mt-2.5 text-sm leading-relaxed text-[var(--text-muted)]">
+                  {pillar.body}
+                </p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
+          <div className="mb-8 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight">The EduSat track</h2>
+              <p className="mt-1.5 text-sm text-[var(--text-muted)]">
+                Take them in order, or jump to the one that matches your gap.
+              </p>
+            </div>
+            <Link href="/catalog" className="shrink-0 text-sm text-ion-300 hover:underline">
+              All courses →
+            </Link>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-3">
+            {(courses ?? []).map((course, index) => (
+              <Card key={course.id} className="flex flex-col">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="font-mono text-xs text-[var(--text-muted)]">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <Badge tone={course.level === 'advanced' ? 'warning' : 'info'}>
+                    {LEVEL_LABEL[course.level]}
+                  </Badge>
+                  {course.requires_hardware ? <Badge tone="neutral">Hardware</Badge> : null}
+                </div>
+                <h3 className="text-base font-semibold leading-snug">
+                  <Link href={`/catalog/${course.slug}`} className="hover:text-ion-300">
+                    {course.title}
+                  </Link>
+                </h3>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-[var(--text-muted)]">
+                  {course.summary}
+                </p>
+                <p className="mt-4 text-xs text-[var(--text-muted)]">
+                  {formatMinutes(course.estimated_minutes)} ·{' '}
+                  {course.issues_certificate ? 'Certificate' : 'No certificate'}
+                </p>
+              </Card>
+            ))}
+            {(courses ?? []).length === 0 ? (
+              <Card className="md:col-span-3">
+                <Markdown variant="compact">
+                  {
+                    'No published courses yet. Sign in as an administrator and publish a course, or run the seed migration:\n\n```\nnpx supabase db reset\n```'
+                  }
+                </Markdown>
+              </Card>
+            ) : null}
+          </div>
+        </section>
       </main>
-    </div>
+
+      <SiteFooter />
+    </>
   );
 }
