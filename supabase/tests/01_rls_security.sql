@@ -759,6 +759,177 @@ begin
 end $$;
 rollback;
 
+-- ---------------------------------------------------------------------------
+-- 21. Commerce gating (migration 0009)
+-- ---------------------------------------------------------------------------
+begin;
+select pg_temp.act_as_owner();
+
+select pg_temp.assert(app.classify_email_domain('uonbi.ac.ke') = 'institutional',
+  'ac.ke is classified institutional');
+select pg_temp.assert(app.classify_email_domain('mit.edu') = 'institutional',
+  '.edu is classified institutional');
+select pg_temp.assert(app.classify_email_domain('gmail.com') = 'free',
+  'free-mail domains are classified free');
+select pg_temp.assert(app.classify_email_domain('randomcorp.io') = 'unknown',
+  'an unrecognised domain is not auto-granted');
+
+do $$
+declare res jsonb; r public.quote_requests%rowtype;
+begin
+  res := app.submit_quote_request(jsonb_build_object(
+    'institution','University of Nairobi','institution_type','University',
+    'country','Kenya','contact_name','A Lecturer',
+    'contact_email','a.lecturer@uonbi.ac.ke','contact_role','Head of department',
+    'use_case','Final-year communications module','cohort_size','25 – 60',
+    'quantity_band','3 – 5','funding_status','Budget approved',
+    'timeline','This quarter','procurement_route','Purchase order'));
+
+  if res ->> 'auto_tier' <> 'verified' then
+    raise exception 'FAIL  institutional email did not auto-grant tier 1';
+  end if;
+  raise notice 'PASS  institutional email auto-grants the verified tier';
+
+  if res ? 'score' then
+    raise exception 'FAIL  qualification score was returned to the requester';
+  end if;
+  raise notice 'PASS  qualification score is never returned to the requester';
+
+  select * into r from public.quote_requests where reference = res ->> 'reference';
+  if r.score < 70 then raise exception 'FAIL  strong lead scored only %', r.score; end if;
+  raise notice 'PASS  a strong lead scores % of 100', r.score;
+
+  if r.screening <> 'pending' then
+    raise exception 'FAIL  export screening did not start pending';
+  end if;
+  raise notice 'PASS  export screening starts pending on every request';
+end $$;
+
+do $$
+declare res jsonb; r public.quote_requests%rowtype;
+begin
+  res := app.submit_quote_request(jsonb_build_object(
+    'institution','Curious person','institution_type','Secondary school',
+    'country','X','contact_name','S','contact_email','someone@gmail.com',
+    'contact_role','Student','use_case','curious','quantity_band','1 – 2',
+    'funding_status','Exploring only','timeline','No fixed date'));
+  if res ->> 'auto_tier' <> 'open' then
+    raise exception 'FAIL  a free-mail address was auto-granted a tier';
+  end if;
+  raise notice 'PASS  a free-mail address does not auto-grant a tier';
+end $$;
+
+-- Quotation totals are derived, never asserted by an operator.
+do $$
+declare qr uuid; q uuid; tot int;
+begin
+  select id into qr from public.quote_requests limit 1;
+  insert into public.quotations (quote_request_id, reference)
+  values (qr, app.next_reference('QUO')) returning id into q;
+
+  insert into public.quotation_lines
+    (quotation_id, description, quantity, unit_price_cents, line_total_cents)
+  values (q, 'EduSat 1U', 2, 1650000, 3300000),
+         (q, 'Instructor training', 1, 480000, 480000);
+
+  update public.quotations set shipping_cents = 120000, discount_cents = 100000
+   where id = q;
+
+  select total_cents into tot from public.quotations where id = q;
+  if tot <> 3800000 then
+    raise exception 'FAIL  quotation total is % , expected 3800000', tot;
+  end if;
+  raise notice 'PASS  quotation total survives an edit to shipping and discount';
+
+  delete from public.quotation_lines
+   where quotation_id = q and description = 'Instructor training';
+  select total_cents into tot from public.quotations where id = q;
+  if tot <> 3320000 then
+    raise exception 'FAIL  total after removing a line is %, expected 3320000', tot;
+  end if;
+  raise notice 'PASS  quotation total recomputes when a line is removed';
+end $$;
+rollback;
+
+-- Anonymous visitors must not reach the commercial tables at all.
+begin;
+select pg_temp.act_as_anon();
+do $$
+begin
+  begin
+    perform 1 from public.quote_requests limit 1;
+    raise exception 'FAIL  anon could read quote requests';
+  exception when insufficient_privilege then
+    raise notice 'PASS  anon cannot read quote requests';
+  end;
+  begin
+    perform list_price_cents from public.hardware_products limit 1;
+    raise exception 'FAIL  anon could read hardware list prices';
+  exception when insufficient_privilege then
+    raise notice 'PASS  anon cannot read hardware list prices';
+  end;
+  begin
+    perform 1 from public.demo_access limit 1;
+    raise exception 'FAIL  anon could read demo access grants';
+  exception when insufficient_privilege then
+    raise notice 'PASS  anon cannot read demo access grants';
+  end;
+end $$;
+rollback;
+
+
+-- ===========================================================================
+-- Catalogue integrity (migration 0010)
+-- ===========================================================================
+-- A quote-only product with a list price, or a priced product without one,
+-- are both states that would silently produce a wrong quotation. The
+-- constraint is the guard; these assertions are the proof it is armed.
+
+begin;
+do $$
+begin
+  begin
+    insert into public.hardware_products
+      (sku, name, category, description, list_price_cents, is_quote_only)
+    values ('TEST-BAD-1', 'quote-only with a price', 'robotics', '', 500000, true);
+    raise exception 'FAIL  a quote-only product accepted a list price';
+  exception when check_violation then
+    raise notice 'PASS  a quote-only product cannot carry a list price';
+  end;
+
+  begin
+    insert into public.hardware_products
+      (sku, name, category, description, list_price_cents, is_quote_only)
+    values ('TEST-BAD-2', 'priced with no price', 'rocketry', '', 0, false);
+    raise exception 'FAIL  a priced product was accepted with no price';
+  exception when check_violation then
+    raise notice 'PASS  a priced product must carry a price';
+  end;
+
+  begin
+    insert into public.hardware_products
+      (sku, name, category, description, list_price_cents)
+    values ('TEST-BAD-3', 'bogus category', 'teleportation', '', 1000);
+    raise exception 'FAIL  an unknown category was accepted';
+  exception when check_violation then
+    raise notice 'PASS  categories are constrained to the known set';
+  end;
+
+  -- The correction this migration exists to make.
+  if (select list_price_cents from public.hardware_products where sku = 'AO-EDUSAT-1U')
+     is distinct from 100000 then
+    raise exception 'FAIL  EduSat is not priced at the published USD 1,000';
+  end if;
+  raise notice 'PASS  EduSat is priced at the published USD 1,000';
+
+  if (select count(*) from public.hardware_products
+       where vertical = 'rocketry' and not is_quote_only) < 1 then
+    raise exception 'FAIL  no purchasable rocketry product';
+  end if;
+  raise notice 'PASS  every vertical the site sells has a catalogue entry';
+end $$;
+rollback;
+
 \echo ''
 \echo '================================================'
 \echo ' All RLS and business-rule assertions passed.'

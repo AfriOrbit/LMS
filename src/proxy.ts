@@ -57,8 +57,48 @@ function redirect(request: NextRequest, pathname: string, from?: string) {
   return NextResponse.redirect(url);
 }
 
+/**
+ * Which required public variables are missing.
+ *
+ * `NEXT_PUBLIC_*` values are inlined by Next at *build* time. Setting them in
+ * a hosting dashboard after a deploy therefore changes nothing until the next
+ * build — a failure mode that is genuinely hard to diagnose from the outside,
+ * because every route including `/robots.txt` returns a bare 500 and the
+ * dashboard shows the variables present and correct.
+ */
+function missingPublicEnv(): string[] {
+  const missing: string[] = [];
+  if (!publicEnv.supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+  if (!publicEnv.supabaseAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  return missing;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  /*
+   * Fail visibly, not fatally.
+   *
+   * Without this the Supabase client constructor throws on a missing URL or
+   * key, and because this proxy runs on every matched route the whole site
+   * returns 500 — including robots.txt, which makes it look like an outage
+   * rather than a configuration error. Redirecting to a page that names the
+   * missing variables turns a two-hour investigation into a ten-second read.
+   */
+  const missing = missingPublicEnv();
+  if (missing.length > 0) {
+    if (pathname === '/setup') {
+      const pass = NextResponse.next({ request });
+      applySecurityHeaders(pass, request);
+      return pass;
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = '/setup';
+    url.search = `?missing=${encodeURIComponent(missing.join(','))}`;
+    const out = NextResponse.redirect(url);
+    applySecurityHeaders(out, request);
+    return out;
+  }
 
   let response = NextResponse.next({ request });
 
@@ -80,7 +120,18 @@ export async function proxy(request: NextRequest) {
   // Verifies the JWT (locally when asymmetric keys are in use) and refreshes
   // the session when needed. Must run before any redirect so the refreshed
   // cookie is not discarded.
-  const { data: claimsData } = await supabase.auth.getClaims();
+  //
+  // Wrapped because this is a network call to Supabase on every request. If
+  // the project is paused, the key is wrong, or Supabase has a bad minute,
+  // an unhandled rejection here would 500 the entire site rather than
+  // degrading to logged-out — which is the correct behaviour: row-level
+  // security, not this call, is what protects the data.
+  let claimsData: Awaited<ReturnType<typeof supabase.auth.getClaims>>['data'] = null;
+  try {
+    ({ data: claimsData } = await supabase.auth.getClaims());
+  } catch (error) {
+    console.error('[proxy] getClaims failed; treating request as signed out', error);
+  }
   const claims = claimsData?.claims as
     | {
         sub?: string;
