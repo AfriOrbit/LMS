@@ -1,0 +1,78 @@
+AfriOrbit LMS — update bundle
+=============================
+
+Extract this over your local repo folder, keeping the folder structure:
+
+  C:\Users\12404\OneDrive - MS Office\Desktop\Combined\Enterprise\AfriOrbit\Afriorbit-LMS
+
+Every file here either replaces one of the same name or is new. Nothing else
+in your repo is touched.
+
+WHAT IS DELIBERATELY NOT IN THIS BUNDLE
+---------------------------------------
+package.json and package-lock.json.
+
+Your package.json is byte-identical to mine, which means your package-lock.json
+fix ("Sync package-lock.json for npm ci") is the correct one and must survive.
+Overwriting it would break `npm ci` in CI again. If an extract tool offers to
+replace either file, say no — they are not here, so it should not ask.
+
+THE FILES
+---------
+NEW   src/app/setup/page.tsx
+      Configuration diagnostic. Names which environment variables actually
+      arrived in the deployed bundle, and flags wrong-shaped values.
+
+EDIT  src/proxy.ts
+      Was throwing on missing Supabase config, which returned 500 on every
+      route including robots.txt. Now redirects to /setup instead. Also wraps
+      the getClaims() network call so a Supabase blip degrades to logged-out
+      rather than taking the site down.
+
+EDIT  src/app/layout.tsx
+      metadataBase no longer throws on a malformed NEXT_PUBLIC_SITE_URL. It
+      runs at module load, so previously a URL missing its https:// prefix
+      would 500 every page including the setup page meant to explain it.
+
+NEW   supabase/migrations/0009_commerce_gating.sql
+      MISSING FROM YOUR REPO. The whole gating backend — demo tiers, quote
+      requests, domain classification, scoring, quotations, export screening.
+
+NEW   supabase/migrations/0010_vertical_catalogue.sql
+      Product catalogue for all four verticals. Also corrects the EduSat list
+      price to the published USD 1,000; it was seeded at USD 16,500.
+
+EDIT  supabase/tests/01_rls_security.sql
+      Adds catalogue-integrity assertions to the existing suite.
+
+NEW   public/widget.js
+      MISSING FROM YOUR REPO. Loader for LMS-backed embeds.
+
+NEW   public/afriorbit-sims.js
+      The simulator bundle the marketing site loads. Serving it from here
+      means the Squarespace pages can point at
+      https://<your-app>/afriorbit-sims.js with no separate upload.
+
+EDIT  eslint.config.mjs
+      Ignores public/afriorbit-sims.js. It is a generated browser bundle, not
+      source, and linting it produced 41 spurious warnings.
+
+NEW   .gitattributes
+      Forces LF and text handling. See the README note below.
+
+EDIT  README.md
+      Your copy has UTF-16LE bytes appended to the end — a run of null bytes
+      that makes git treat it as a binary file, so GitHub will not render it
+      and diffs are useless. This is what PowerShell's `>>` operator does by
+      default. This copy is clean UTF-8.
+
+AFTER EXTRACTING
+----------------
+Verify before you commit:
+
+  npm run typecheck
+  npm run lint
+  npm run check:domain
+
+All three pass on this exact set of files; I ran your CI workflow against a
+fresh clone of your repo with this bundle applied.

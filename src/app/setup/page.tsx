@@ -70,6 +70,7 @@ export default async function SetupPage({
   searchParams: Promise<{ missing?: string }>;
 }) {
   const { missing } = await searchParams;
+  const reportedMissing = (missing ?? '').split(',').filter(Boolean);
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -140,6 +141,17 @@ export default async function SetupPage({
   const warnings = checks.filter((c) => c.present && c.problem);
   const missingAtBuild = blocking.filter((c) => c.buildTime);
 
+  /*
+   * The proxy and this page run in different bundles — middleware and the Node
+   * server — and are built separately. If the proxy reported a variable
+   * missing but this page can read it, that disagreement is not a bug in
+   * either one: it is the build-time inlining problem made visible, and it is
+   * the single most diagnostic thing this page can show.
+   */
+  const disagreements = reportedMissing.filter((name) =>
+    checks.some((c) => c.name === name && c.present),
+  );
+
   return (
     <main
       id="main"
@@ -164,6 +176,31 @@ export default async function SetupPage({
           ? 'The app is running, but it cannot reach Supabase. Nothing below reveals a secret value — only whether each variable arrived.'
           : 'Every required variable is present in this deployment. If pages still fail, the cause is downstream: migrations not applied, or the auth hook not enabled.'}
       </p>
+
+      {disagreements.length > 0 && (
+        <div
+          style={{
+            borderLeft: '3px solid #da1e28',
+            background: '#fff1f1',
+            padding: '1rem 1.15rem',
+            margin: '0 0 2rem',
+          }}
+        >
+          <p style={{ margin: 0, fontWeight: 600 }}>
+            This is a stale build. You do not need to change any values.
+          </p>
+          <p style={{ margin: '.6rem 0 0' }}>
+            The request gate says {disagreements.join(' and ')}{' '}
+            {disagreements.length > 1 ? 'are' : 'is'} missing, but this page can read{' '}
+            {disagreements.length > 1 ? 'them' : 'it'} perfectly well. Those two run in
+            separately-built bundles, so the only way they can disagree is that one of them was
+            compiled before the variables existed.
+          </p>
+          <p style={{ margin: '.6rem 0 0' }}>
+            <strong>Redeploy with the build cache disabled.</strong> Nothing else is wrong.
+          </p>
+        </div>
+      )}
 
       {missingAtBuild.length > 0 && (
         <div
