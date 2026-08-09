@@ -1,0 +1,281 @@
+@import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
+
+/*
+ * AfriOrbit LMS design tokens.
+ *
+ * Dark-first, because the audience works in labs and ground stations and
+ * because it matches the AfriOrbit brand. Light mode is supported and both
+ * are checked against WCAG AA for body text.
+ */
+@theme {
+  --color-void-950: #05070d;
+  --color-void-900: #0a0e1a;
+  --color-void-850: #0f1524;
+  --color-void-800: #141b2e;
+  --color-void-700: #1d2740;
+  --color-void-600: #2a3654;
+  --color-void-500: #3d4c70;
+
+  --color-ion-50: #eef7ff;
+  --color-ion-100: #d9edff;
+  --color-ion-200: #bce0ff;
+  --color-ion-300: #8ecdff;
+  --color-ion-400: #59b0ff;
+  --color-ion-500: #338ffb;
+  --color-ion-600: #1d6ff0;
+  --color-ion-700: #1758dc;
+  --color-ion-800: #1a49b2;
+  --color-ion-900: #1c418c;
+
+  --color-ember-400: #ff9f45;
+  --color-ember-500: #f97e16;
+  --color-ember-600: #e2620c;
+
+  --color-signal-400: #34d99a;
+  --color-signal-500: #12b981;
+  --color-signal-600: #059567;
+
+  --color-alert-400: #f87171;
+  --color-alert-500: #ef4444;
+  --color-alert-600: #dc2626;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+}
+
+:root {
+  --bg: var(--color-void-950);
+  --bg-elevated: var(--color-void-900);
+  --bg-card: var(--color-void-850);
+  --border: var(--color-void-700);
+  --text: #e8ecf5;
+  --text-muted: #97a3bd;
+  --accent: var(--color-ion-400);
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #f7f9fc;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --border: #dde3ee;
+  --text: #101828;
+  --text-muted: #52607a;
+  --accent: var(--color-ion-700);
+  color-scheme: light;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Star-field backdrop for marketing surfaces. Purely decorative. */
+.starfield {
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 42% 62%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1.5px 1.5px at 71% 26%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 88% 74%, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1px 1px at 24% 88%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(circle at 78% 12%, rgba(51, 143, 251, 0.14), transparent 45%),
+    radial-gradient(circle at 8% 82%, rgba(249, 126, 22, 0.1), transparent 42%);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ion-400);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgba(51, 143, 251, 0.32);
+}
+
+/* ---------------------------------------------------------------------------
+ * Lesson prose
+ * ------------------------------------------------------------------------ */
+.prose-lesson {
+  color: var(--text);
+  line-height: 1.75;
+  font-size: 1.0625rem;
+  max-width: 74ch;
+}
+
+.prose-lesson > * + * {
+  margin-top: 1.15em;
+}
+
+.prose-lesson h2 {
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  margin-top: 2.4em;
+  margin-bottom: 0.6em;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--border);
+}
+
+.prose-lesson h3 {
+  font-size: 1.175rem;
+  font-weight: 620;
+  margin-top: 1.9em;
+  margin-bottom: 0.5em;
+  color: var(--color-ion-200);
+}
+
+[data-theme='light'] .prose-lesson h3 {
+  color: var(--color-ion-800);
+}
+
+.prose-lesson p {
+  color: var(--text);
+}
+
+.prose-lesson strong {
+  font-weight: 620;
+  color: #ffffff;
+}
+
+[data-theme='light'] .prose-lesson strong {
+  color: #000000;
+}
+
+.prose-lesson a {
+  color: var(--color-ion-300);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose-lesson ul,
+.prose-lesson ol {
+  padding-left: 1.4em;
+}
+
+.prose-lesson ul {
+  list-style: disc;
+}
+
+.prose-lesson ol {
+  list-style: decimal;
+}
+
+.prose-lesson li + li {
+  margin-top: 0.4em;
+}
+
+.prose-lesson li::marker {
+  color: var(--color-ion-400);
+}
+
+.prose-lesson code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: color-mix(in srgb, var(--color-ion-500) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-ion-500) 24%, transparent);
+  padding: 0.1em 0.38em;
+  border-radius: 4px;
+}
+
+.prose-lesson pre {
+  background: var(--color-void-900);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+[data-theme='light'] .prose-lesson pre {
+  background: #f1f4f9;
+}
+
+.prose-lesson pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.prose-lesson blockquote {
+  border-left: 3px solid var(--color-ion-500);
+  padding-left: 1rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.prose-lesson table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.925rem;
+  display: block;
+  overflow-x: auto;
+}
+
+.prose-lesson th,
+.prose-lesson td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose-lesson th {
+  background: color-mix(in srgb, var(--color-ion-500) 10%, transparent);
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.prose-lesson hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.5em 0;
+}
+
+.prose-lesson .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
+}
+
+/* Compact variant used inside quiz prompts and cards. */
+.prose-compact {
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.prose-compact > * + * {
+  margin-top: 0.7em;
+}
+
+.prose-compact code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: color-mix(in srgb, var(--color-ion-500) 14%, transparent);
+  padding: 0.08em 0.32em;
+  border-radius: 4px;
+}
+
+.prose-compact ul {
+  list-style: disc;
+  padding-left: 1.3em;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
