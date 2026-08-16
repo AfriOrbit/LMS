@@ -1,0 +1,33 @@
+# Line endings and encoding
+# -----------------------------------------------------------------------------
+# This repository is edited from Windows and deployed on Linux. Without this
+# file, a file written by a Windows tool can enter the repository with CRLF
+# endings, and PowerShell's `>` and `>>` operators write UTF-16LE by default —
+# which is how README.md acquired a run of null bytes and started being treated
+# as a binary file by git.
+#
+# `text=auto eol=lf` normalises everything to LF in the repository while
+# leaving the working copy alone. Every tracked file is already LF, so adding
+# this changes nothing today; it only prevents the next accident.
+
+* text=auto eol=lf
+
+# Explicit, because a stray CRLF in these is actively harmful rather than
+# merely untidy: shell scripts fail with "bad interpreter", and SQL run through
+# some clients breaks on the carriage return.
+*.sh   text eol=lf
+*.sql  text eol=lf
+*.mjs  text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf
+
+# Never normalise these.
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.pdf  binary

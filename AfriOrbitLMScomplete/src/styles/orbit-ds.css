@@ -1,0 +1,1102 @@
+/* ==========================================================================
+   ORBIT DS — AfriOrbit Space design system
+   --------------------------------------------------------------------------
+   Structure from IBM Carbon: 16-column 2x grid, sharp corners, IBM Plex,
+   left-aligned button labels with a trailing icon, generous rules.
+   Density and colour from operational software: near-black consoles, mono
+   labels, restrained accent, data first.
+
+   Two surfaces, switched with data-surface="light" | "dark" on any container:
+     light — marketing, procurement, anything a finance committee reads
+     dark  — demos, telemetry, anything that should feel like mission software
+
+   Everything is namespaced .ao-* so it can be injected into Squarespace
+   without colliding with the theme.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Tokens
+   -------------------------------------------------------------------------- */
+
+.ao,
+[data-surface] {
+  /* Brand ---------------------------------------------------------------- */
+  --ao-signal-10: #edf3ff;
+  --ao-signal-20: #d0e0ff;
+  --ao-signal-40: #85aeff;
+  --ao-signal-50: #5b9cff;
+  --ao-signal-60: #0f5efc;
+  --ao-signal-70: #0043ce;
+  --ao-signal-80: #002d9c;
+
+  --ao-ember-30: #ffd6a8;
+  --ao-ember-40: #ff9b47;
+  --ao-ember-50: #f97316;
+  --ao-ember-60: #e8590c;
+
+  --ao-acquired-30: #6ff2bd;
+  --ao-acquired-40: #3ddc9a;
+  --ao-acquired-50: #0fa06d;
+  --ao-acquired-60: #0e8a5f;
+
+  --ao-alert-40: #ff8a8a;
+  --ao-alert-50: #ff6b6b;
+  --ao-alert-60: #c9182c;
+
+  --ao-warn-40: #f1c21b;
+  --ao-warn-60: #b28600;
+
+  /* Type ----------------------------------------------------------------- */
+  --ao-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Helvetica, Arial, sans-serif;
+  --ao-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Carbon type scale, trimmed to what this site uses */
+  --ao-t-caption: 0.75rem;   /* 12 — mono labels, table meta */
+  --ao-t-label: 0.8125rem;   /* 13 — form labels, tags */
+  --ao-t-body-s: 0.875rem;   /* 14 — dense body, tables */
+  --ao-t-body: 1rem;         /* 16 — body */
+  --ao-t-body-l: 1.125rem;   /* 18 — lead paragraphs */
+  --ao-t-h6: 1.25rem;        /* 20 */
+  --ao-t-h5: 1.5rem;         /* 24 */
+  --ao-t-h4: 1.75rem;        /* 28 */
+  --ao-t-h3: 2.25rem;        /* 36 */
+  --ao-t-h2: 3rem;           /* 48 */
+  --ao-t-h1: 4rem;           /* 64 */
+  --ao-t-display: 5.25rem;   /* 84 — hero only */
+
+  /* Spacing — Carbon's 8px-rooted scale */
+  --ao-s1: 0.125rem;  /*  2 */
+  --ao-s2: 0.25rem;   /*  4 */
+  --ao-s3: 0.5rem;    /*  8 */
+  --ao-s4: 0.75rem;   /* 12 */
+  --ao-s5: 1rem;      /* 16 */
+  --ao-s6: 1.5rem;    /* 24 */
+  --ao-s7: 2rem;      /* 32 */
+  --ao-s8: 2.5rem;    /* 40 */
+  --ao-s9: 3rem;      /* 48 */
+  --ao-s10: 4rem;     /* 64 */
+  --ao-s11: 5rem;     /* 80 */
+  --ao-s12: 6rem;     /* 96 */
+  --ao-s13: 10rem;    /* 160 */
+
+  /* Grid */
+  --ao-max: 1584px;
+  --ao-gutter: 2rem;
+  --ao-pad: 1rem;
+
+  /* Motion — Carbon's productive and expressive curves */
+  --ao-ease-productive: cubic-bezier(0.2, 0, 0.38, 0.9);
+  --ao-ease-expressive: cubic-bezier(0.4, 0.14, 0.3, 1);
+  --ao-ease-entrance: cubic-bezier(0, 0, 0.38, 0.9);
+  --ao-fast: 110ms;
+  --ao-moderate: 240ms;
+  --ao-slow: 400ms;
+
+  /* Radius — sharp by default. 2px only where a surface needs to lift. */
+  --ao-r0: 0;
+  --ao-r1: 2px;
+}
+
+/* Light surface — marketing, procurement */
+[data-surface='light'] {
+  --ao-bg: #ffffff;
+  --ao-bg-1: #f4f4f4;
+  --ao-bg-2: #e8e8e8;
+  --ao-bg-inverse: #0b0d10;
+  --ao-line: #d9dce2;
+  --ao-line-strong: #a8aeb9;
+  --ao-text: #131720;
+  --ao-text-2: #525866;
+  --ao-text-3: #6f7684;
+  --ao-text-inverse: #ffffff;
+  --ao-accent: var(--ao-signal-60);
+  --ao-accent-hover: var(--ao-signal-70);
+  --ao-accent-text: #ffffff;
+  --ao-ember: var(--ao-ember-60);
+  --ao-acquired: var(--ao-acquired-60);
+  --ao-alert: var(--ao-alert-60);
+  --ao-warn: var(--ao-warn-60);
+  --ao-focus: var(--ao-signal-60);
+  --ao-grid-line: rgba(19, 23, 32, 0.06);
+  color-scheme: light;
+  color: var(--ao-text);
+}
+
+/* Dark surface — demos, telemetry, mission consoles */
+[data-surface='dark'] {
+  --ao-bg: #0b0d10;
+  --ao-bg-1: #131720;
+  --ao-bg-2: #1b202b;
+  --ao-bg-inverse: #ffffff;
+  --ao-line: #262c38;
+  --ao-line-strong: #3a4252;
+  --ao-text: #f2f5fa;
+  --ao-text-2: #9aa4b8;
+  --ao-text-3: #6f7889;
+  --ao-text-inverse: #0b0d10;
+  --ao-accent: var(--ao-signal-50);
+  --ao-accent-hover: var(--ao-signal-40);
+  --ao-accent-text: #05070b;
+  --ao-ember: var(--ao-ember-40);
+  --ao-acquired: var(--ao-acquired-40);
+  --ao-alert: var(--ao-alert-50);
+  --ao-warn: var(--ao-warn-40);
+  --ao-focus: var(--ao-signal-40);
+  --ao-grid-line: rgba(255, 255, 255, 0.045);
+  color-scheme: dark;
+  color: var(--ao-text);
+}
+
+/* --------------------------------------------------------------------------
+   2. Base
+   -------------------------------------------------------------------------- */
+
+.ao *,
+.ao *::before,
+.ao *::after {
+  box-sizing: border-box;
+}
+
+.ao {
+  font-family: var(--ao-sans);
+  font-size: var(--ao-t-body);
+  line-height: 1.5;
+  color: var(--ao-text);
+  background: var(--ao-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'tnum' 0;
+}
+
+.ao :focus-visible {
+  outline: 2px solid var(--ao-focus);
+  outline-offset: 2px;
+}
+
+.ao ::selection {
+  background: var(--ao-signal-60);
+  color: #fff;
+}
+
+.ao-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   3. Grid
+   -------------------------------------------------------------------------- */
+
+.ao-shell {
+  width: 100%;
+  max-width: var(--ao-max);
+  margin-inline: auto;
+  padding-inline: var(--ao-s5);
+}
+
+@media (min-width: 672px) {
+  .ao-shell { padding-inline: var(--ao-s5); }
+}
+@media (min-width: 1056px) {
+  .ao-shell { padding-inline: var(--ao-s7); }
+}
+
+.ao-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ao-s7);
+}
+
+@media (min-width: 672px) {
+  .ao-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+@media (min-width: 1056px) {
+  .ao-grid { grid-template-columns: repeat(16, minmax(0, 1fr)); }
+}
+
+/* Column spans — mobile stacks, desktop uses the 16-col grid */
+.ao-col-4  { grid-column: span 4; }
+.ao-col-6  { grid-column: span 4; }
+.ao-col-8  { grid-column: span 4; }
+.ao-col-10 { grid-column: span 4; }
+.ao-col-12 { grid-column: span 4; }
+.ao-col-16 { grid-column: span 4; }
+
+@media (min-width: 672px) {
+  .ao-col-4  { grid-column: span 4; }
+  .ao-col-6  { grid-column: span 8; }
+  .ao-col-8  { grid-column: span 8; }
+  .ao-col-10 { grid-column: span 8; }
+  .ao-col-12 { grid-column: span 8; }
+  .ao-col-16 { grid-column: span 8; }
+}
+
+@media (min-width: 1056px) {
+  .ao-col-4  { grid-column: span 4; }
+  .ao-col-6  { grid-column: span 6; }
+  .ao-col-8  { grid-column: span 8; }
+  .ao-col-10 { grid-column: span 10; }
+  .ao-col-12 { grid-column: span 12; }
+  .ao-col-16 { grid-column: span 16; }
+}
+
+.ao-section {
+  padding-block: var(--ao-s11);
+  border-top: 1px solid var(--ao-line);
+}
+
+.ao-section--tight { padding-block: var(--ao-s9); }
+.ao-section--flush { border-top: 0; }
+
+@media (min-width: 1056px) {
+  .ao-section { padding-block: var(--ao-s12); }
+}
+
+/* The fine grid overlay. Purely structural decoration — it makes the layout
+   legible as a system, the way Carbon's grid mode does. */
+.ao-ruled {
+  position: relative;
+  isolation: isolate;
+}
+
+.ao-ruled::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(to right, var(--ao-grid-line) 1px, transparent 1px);
+  background-size: calc(100% / 8) 100%;
+}
+
+/* --------------------------------------------------------------------------
+   4. Type
+   -------------------------------------------------------------------------- */
+
+.ao h1, .ao h2, .ao h3, .ao h4, .ao h5, .ao h6 {
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.ao p { margin: 0; }
+
+.ao-display {
+  font-size: clamp(2.5rem, 4.9vw, 4.5rem);
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+}
+
+.ao-h1 { font-size: clamp(2.125rem, 4.1vw, 3.5rem); font-weight: 300; letter-spacing: -0.03em; }
+.ao-h2 { font-size: clamp(1.75rem, 3vw, 2.75rem); font-weight: 300; letter-spacing: -0.025em; }
+.ao-h3 { font-size: clamp(1.5rem, 2.6vw, var(--ao-t-h3)); font-weight: 400; }
+.ao-h4 { font-size: var(--ao-t-h4); font-weight: 400; }
+.ao-h5 { font-size: var(--ao-t-h5); font-weight: 500; letter-spacing: -0.01em; }
+.ao-h6 { font-size: var(--ao-t-h6); font-weight: 500; letter-spacing: -0.005em; }
+
+.ao-lead {
+  font-size: var(--ao-t-body-l);
+  line-height: 1.6;
+  color: var(--ao-text-2);
+  max-width: 62ch;
+}
+
+.ao-body { font-size: var(--ao-t-body); line-height: 1.6; max-width: 68ch; }
+.ao-body-s { font-size: var(--ao-t-body-s); line-height: 1.55; color: var(--ao-text-2); }
+.ao-muted { color: var(--ao-text-2); }
+.ao-dim { color: var(--ao-text-3); }
+
+/* The mono eyebrow is the system's signature. Used above every section title,
+   on every data label, and on every spec value. */
+.ao-eyebrow {
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ao-accent);
+  display: flex;
+  align-items: center;
+  gap: var(--ao-s3);
+}
+
+.ao-eyebrow::before {
+  content: '';
+  width: 1.25rem;
+  height: 1px;
+  background: currentColor;
+  flex: none;
+}
+
+.ao-eyebrow--plain::before { display: none; }
+.ao-eyebrow--muted { color: var(--ao-text-3); }
+
+.ao-mono {
+  font-family: var(--ao-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'zero' 1;
+}
+
+.ao-num {
+  font-family: var(--ao-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Only unclassed anchors get the link colour. `:not([class])` keeps this rule
+   out of the way of .ao-btn, .ao-nav__item and .ao-tile, all of which set
+   their own colour — without it, a primary button renders accent-on-accent,
+   which is invisible. */
+/* `[class=""]` is not the same as no class attribute, and some template and
+   CMS pipelines emit the empty form. Both need to reach this rule or the
+   anchor falls back to whatever colour the host theme sets. */
+.ao a:not([class]),
+.ao a[class=''] { color: var(--ao-accent); text-underline-offset: 3px; }
+.ao a:not([class]):hover,
+.ao a[class='']:hover { color: var(--ao-accent-hover); }
+
+.ao-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ao-s3);
+  font-size: var(--ao-t-body-s);
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 1px;
+  transition: border-color var(--ao-fast) var(--ao-ease-productive);
+}
+
+/* Written as `.ao a.ao-link` so it outranks any single-class anchor rule the
+   host template ships. Without an explicit colour this class inherits from
+   the theme — which on the live Squarespace site meant maroon links inside a
+   blue design system, and the prototype could never have shown it because
+   the prototype shell has no competing anchor colour. */
+.ao a.ao-link,
+.ao-link { color: var(--ao-accent); }
+.ao a.ao-link:hover,
+.ao-link:hover { color: var(--ao-accent-hover); }
+
+.ao-link:hover { border-bottom-color: currentColor; }
+.ao-link .ao-arrow { transition: transform var(--ao-fast) var(--ao-ease-productive); }
+.ao-link:hover .ao-arrow { transform: translateX(3px); }
+
+/* --------------------------------------------------------------------------
+   5. Buttons — Carbon geometry: 48px tall, label left, icon right, no radius
+   -------------------------------------------------------------------------- */
+
+.ao-btn {
+  --btn-bg: var(--ao-accent);
+  --btn-fg: var(--ao-accent-text);
+  --btn-bg-hover: var(--ao-accent-hover);
+  --btn-border: transparent;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ao-s10);
+  min-height: 3rem;
+  padding: var(--ao-s4) var(--ao-s5);
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-family: var(--ao-sans);
+  font-size: var(--ao-t-body-s);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  text-align: left;
+  text-decoration: none;
+  border-radius: var(--ao-r0);
+  cursor: pointer;
+  transition:
+    background-color var(--ao-fast) var(--ao-ease-productive),
+    border-color var(--ao-fast) var(--ao-ease-productive),
+    color var(--ao-fast) var(--ao-ease-productive);
+}
+
+.ao a.ao-btn,
+.ao button.ao-btn { color: var(--btn-fg); text-decoration: none; }
+.ao-btn:hover { background: var(--btn-bg-hover); color: var(--btn-fg); }
+.ao-btn:active { transform: none; }
+.ao-btn:disabled,
+.ao-btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ao-btn .ao-btn__icon { flex: none; }
+
+.ao-btn--secondary {
+  --btn-bg: transparent;
+  --btn-fg: var(--ao-text);
+  --btn-bg-hover: var(--ao-bg-1);
+  --btn-border: var(--ao-line-strong);
+}
+
+.ao-btn--tertiary {
+  --btn-bg: transparent;
+  --btn-fg: var(--ao-accent);
+  --btn-bg-hover: var(--ao-accent);
+  --btn-border: var(--ao-accent);
+}
+.ao-btn--tertiary:hover { color: var(--ao-accent-text); }
+
+.ao-btn--ghost {
+  --btn-bg: transparent;
+  --btn-fg: var(--ao-accent);
+  --btn-bg-hover: var(--ao-bg-1);
+  --btn-border: transparent;
+  gap: var(--ao-s5);
+}
+
+.ao-btn--danger {
+  --btn-bg: var(--ao-alert);
+  --btn-fg: #fff;
+  --btn-bg-hover: #a51124;
+}
+
+.ao-btn--sm { min-height: 2.25rem; padding: var(--ao-s2) var(--ao-s4); gap: var(--ao-s6); font-size: var(--ao-t-label); }
+.ao-btn--lg { min-height: 4rem; padding: var(--ao-s5) var(--ao-s6); font-size: var(--ao-t-body); }
+.ao-btn--block { display: flex; width: 100%; }
+.ao-btn--compact { gap: var(--ao-s4); justify-content: center; }
+
+.ao-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   6. Tiles — the primary content container
+   -------------------------------------------------------------------------- */
+
+.ao-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--ao-s6);
+  background: var(--ao-bg-1);
+  border: 1px solid transparent;
+  border-radius: var(--ao-r0);
+  transition:
+    background-color var(--ao-fast) var(--ao-ease-productive),
+    border-color var(--ao-fast) var(--ao-ease-productive);
+}
+
+.ao-tile--outline { background: transparent; border-color: var(--ao-line); }
+.ao-tile--raised { background: var(--ao-bg); border-color: var(--ao-line); }
+
+a.ao-tile,
+button.ao-tile {
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+  font: inherit;
+}
+
+a.ao-tile:hover,
+button.ao-tile:hover {
+  background: var(--ao-bg-2);
+  border-color: var(--ao-accent);
+  color: inherit;
+}
+
+/* Carbon's clickable-tile corner mark, rebuilt as a pure CSS notch. */
+.ao-tile--action::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1rem;
+  height: 1rem;
+  background: linear-gradient(
+    135deg,
+    transparent 0 50%,
+    var(--ao-accent) 50% 100%
+  );
+  opacity: 0;
+  transition: opacity var(--ao-fast) var(--ao-ease-productive);
+}
+
+.ao-tile--action:hover::after { opacity: 1; }
+
+.ao-tile__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ao-s5);
+  margin-bottom: var(--ao-s5);
+}
+
+.ao-tile__body { flex: 1; }
+.ao-tile__foot {
+  margin-top: var(--ao-s6);
+  padding-top: var(--ao-s4);
+  border-top: 1px solid var(--ao-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ao-s4);
+}
+
+/* --------------------------------------------------------------------------
+   7. Tags and status
+   -------------------------------------------------------------------------- */
+
+.ao-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ao-s2);
+  height: 1.5rem;
+  padding-inline: var(--ao-s3);
+  background: var(--ao-bg-2);
+  color: var(--ao-text-2);
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: var(--ao-r0);
+}
+
+.ao-tag--accent   { background: color-mix(in srgb, var(--ao-accent) 16%, transparent); color: var(--ao-accent); }
+.ao-tag--acquired { background: color-mix(in srgb, var(--ao-acquired) 16%, transparent); color: var(--ao-acquired); }
+.ao-tag--ember    { background: color-mix(in srgb, var(--ao-ember) 18%, transparent); color: var(--ao-ember); }
+.ao-tag--alert    { background: color-mix(in srgb, var(--ao-alert) 16%, transparent); color: var(--ao-alert); }
+.ao-tag--outline  { background: transparent; border: 1px solid var(--ao-line-strong); }
+
+.ao-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.ao-dot--pulse { animation: ao-pulse 2s var(--ao-ease-expressive) infinite; }
+
+@keyframes ao-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+  50% { opacity: 0.6; box-shadow: 0 0 0 4px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao *, .ao *::before, .ao *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   8. Spec tables — dense, engineering-grade
+   -------------------------------------------------------------------------- */
+
+.ao-spec {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ao-t-body-s);
+}
+
+.ao-spec caption {
+  text-align: left;
+  padding-bottom: var(--ao-s4);
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ao-text-3);
+}
+
+.ao-spec th,
+.ao-spec td {
+  padding: var(--ao-s4) var(--ao-s5) var(--ao-s4) 0;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--ao-line);
+}
+
+.ao-spec thead th {
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ao-text-3);
+  border-bottom-color: var(--ao-line-strong);
+}
+
+.ao-spec tbody th {
+  font-weight: 400;
+  color: var(--ao-text-2);
+  width: 40%;
+}
+
+.ao-spec td { font-family: var(--ao-mono); font-variant-numeric: tabular-nums; }
+.ao-spec td.ao-spec__prose { font-family: var(--ao-sans); }
+.ao-spec tbody tr:hover { background: var(--ao-bg-1); }
+
+/* --------------------------------------------------------------------------
+   9. Stat / KPI
+   -------------------------------------------------------------------------- */
+
+.ao-kpis {
+  display: grid;
+  gap: 1px;
+  background: var(--ao-line);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  border-block: 1px solid var(--ao-line);
+}
+
+.ao-kpi {
+  background: var(--ao-bg);
+  padding: var(--ao-s6) var(--ao-s5);
+}
+
+.ao-kpi__label {
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ao-text-3);
+}
+
+.ao-kpi__value {
+  margin-top: var(--ao-s3);
+  font-size: var(--ao-t-h4);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ao-kpi__unit { font-size: var(--ao-t-body-s); color: var(--ao-text-3); margin-left: var(--ao-s2); }
+.ao-kpi__hint { margin-top: var(--ao-s2); font-size: var(--ao-t-caption); color: var(--ao-text-3); }
+
+/* --------------------------------------------------------------------------
+   10. Forms
+   -------------------------------------------------------------------------- */
+
+.ao-field { display: block; margin-bottom: var(--ao-s6); }
+
+.ao-field__label {
+  display: block;
+  margin-bottom: var(--ao-s3);
+  font-size: var(--ao-t-label);
+  color: var(--ao-text-2);
+}
+
+.ao-field__req { color: var(--ao-alert); margin-left: var(--ao-s1); }
+
+.ao-input,
+.ao-select,
+.ao-textarea {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: var(--ao-s3) var(--ao-s5);
+  background: var(--ao-bg-1);
+  border: none;
+  border-bottom: 1px solid var(--ao-line-strong);
+  border-radius: var(--ao-r0);
+  color: var(--ao-text);
+  font-family: var(--ao-sans);
+  font-size: var(--ao-t-body-s);
+  transition: background-color var(--ao-fast) var(--ao-ease-productive),
+              border-color var(--ao-fast) var(--ao-ease-productive);
+}
+
+.ao-input:focus,
+.ao-select:focus,
+.ao-textarea:focus {
+  outline: 2px solid var(--ao-focus);
+  outline-offset: -2px;
+  background: var(--ao-bg-1);
+}
+
+.ao-input::placeholder { color: var(--ao-text-3); }
+.ao-textarea { min-height: 7rem; resize: vertical; padding-block: var(--ao-s4); }
+.ao-select { appearance: none; padding-right: var(--ao-s8); cursor: pointer; }
+
+.ao-field__hint { margin-top: var(--ao-s3); font-size: var(--ao-t-caption); color: var(--ao-text-3); }
+.ao-field__error { margin-top: var(--ao-s3); font-size: var(--ao-t-caption); color: var(--ao-alert); }
+.ao-field--invalid .ao-input,
+.ao-field--invalid .ao-select { outline: 2px solid var(--ao-alert); outline-offset: -2px; }
+
+.ao-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ao-s4);
+  font-size: var(--ao-t-body-s);
+  color: var(--ao-text-2);
+  cursor: pointer;
+}
+
+.ao-check input {
+  margin-top: 0.2rem;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--ao-accent);
+  flex: none;
+}
+
+.ao-slider {
+  width: 100%;
+  accent-color: var(--ao-accent);
+  height: 2px;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   11. Notifications
+   -------------------------------------------------------------------------- */
+
+.ao-note {
+  display: flex;
+  gap: var(--ao-s5);
+  padding: var(--ao-s5);
+  background: var(--ao-bg-1);
+  border-left: 3px solid var(--ao-accent);
+  font-size: var(--ao-t-body-s);
+}
+
+.ao-note--acquired { border-left-color: var(--ao-acquired); }
+.ao-note--warn { border-left-color: var(--ao-warn); }
+.ao-note--alert { border-left-color: var(--ao-alert); }
+.ao-note__title { font-weight: 500; color: var(--ao-text); margin-bottom: var(--ao-s2); }
+.ao-note__body { color: var(--ao-text-2); }
+
+/* --------------------------------------------------------------------------
+   12. The access gate — the most important interaction on the site
+   -------------------------------------------------------------------------- */
+
+.ao-gate {
+  position: relative;
+  border: 1px solid var(--ao-line);
+  background: var(--ao-bg-1);
+  overflow: hidden;
+}
+
+.ao-gate__preview {
+  filter: blur(6px) saturate(0.4);
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+  min-height: 18rem;
+}
+
+.ao-gate__veil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--ao-s5);
+  padding: var(--ao-s8);
+  background: color-mix(in srgb, var(--ao-bg) 72%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.ao-gate__lock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ao-s3);
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ao-ember);
+}
+
+/* Tier ladder shown inside the gate so the visitor always sees the whole map */
+.ao-tiers {
+  display: grid;
+  gap: 1px;
+  background: var(--ao-line);
+  border: 1px solid var(--ao-line);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.ao-tier { background: var(--ao-bg); padding: var(--ao-s5); }
+.ao-tier--current { background: var(--ao-bg-2); box-shadow: inset 3px 0 0 var(--ao-accent); }
+.ao-tier--locked { opacity: 0.62; }
+.ao-tier__n {
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ao-text-3);
+}
+.ao-tier__name { margin-top: var(--ao-s2); font-size: var(--ao-t-body-s); font-weight: 500; }
+.ao-tier__desc { margin-top: var(--ao-s2); font-size: var(--ao-t-caption); color: var(--ao-text-2); line-height: 1.5; }
+
+/* --------------------------------------------------------------------------
+   13. Console — the dark operational panel
+   -------------------------------------------------------------------------- */
+
+.ao-console {
+  border: 1px solid var(--ao-line);
+  background: var(--ao-bg);
+}
+
+.ao-console__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ao-s5);
+  padding: var(--ao-s4) var(--ao-s5);
+  border-bottom: 1px solid var(--ao-line);
+  background: var(--ao-bg-1);
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ao-text-2);
+}
+
+.ao-console__body { padding: var(--ao-s5); }
+.ao-console__split {
+  display: grid;
+  gap: 1px;
+  background: var(--ao-line);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .ao-console__split { grid-template-columns: minmax(0, 1fr) 22rem; }
+}
+
+.ao-console__pane { background: var(--ao-bg); padding: var(--ao-s5); min-width: 0; }
+
+.ao-readout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--ao-s2) var(--ao-s5);
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+}
+
+.ao-readout dt { color: var(--ao-text-3); letter-spacing: 0.04em; }
+.ao-readout dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.ao-readout dd.is-good { color: var(--ao-acquired); }
+.ao-readout dd.is-warn { color: var(--ao-warn); }
+.ao-readout dd.is-bad { color: var(--ao-alert); }
+
+.ao-log {
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+  line-height: 1.7;
+  max-height: 12rem;
+  overflow-y: auto;
+  color: var(--ao-text-2);
+}
+
+.ao-log__t { color: var(--ao-text-3); }
+.ao-log__ok { color: var(--ao-acquired); }
+.ao-log__warn { color: var(--ao-warn); }
+
+/* --------------------------------------------------------------------------
+   14. Navigation
+   -------------------------------------------------------------------------- */
+
+.ao-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: color-mix(in srgb, var(--ao-bg) 92%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--ao-line);
+}
+
+.ao-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ao-s6);
+  height: 3.5rem;
+}
+
+.ao-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ao-s4);
+  text-decoration: none;
+  color: var(--ao-text);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.ao a.ao-brand { color: var(--ao-text); text-decoration: none; }
+.ao-brand__sub { font-weight: 300; color: var(--ao-text-3); }
+
+.ao-nav { display: none; align-items: center; gap: var(--ao-s2); }
+@media (min-width: 1056px) { .ao-nav { display: flex; } }
+
+.ao-nav__item {
+  position: relative;
+  padding: var(--ao-s4) var(--ao-s5);
+  font-size: var(--ao-t-body-s);
+  color: var(--ao-text-2);
+  text-decoration: none;
+  transition: color var(--ao-fast) var(--ao-ease-productive);
+}
+
+.ao a.ao-nav__item { color: var(--ao-text-2); text-decoration: none; }
+.ao a.ao-nav__item:hover { color: var(--ao-text); background: var(--ao-bg-1); }
+.ao-nav__item[aria-current='page'] { color: var(--ao-text); }
+.ao-nav__item[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: var(--ao-s5);
+  right: var(--ao-s5);
+  bottom: 0;
+  height: 2px;
+  background: var(--ao-accent);
+}
+
+/* --------------------------------------------------------------------------
+   15. Step indicator — used by the quote flow
+   -------------------------------------------------------------------------- */
+
+.ao-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: var(--ao-line);
+  border: 1px solid var(--ao-line);
+  margin-bottom: var(--ao-s8);
+}
+
+.ao-step {
+  flex: 1 1 8rem;
+  background: var(--ao-bg);
+  padding: var(--ao-s5);
+  border-top: 3px solid var(--ao-line);
+}
+
+.ao-step--done { border-top-color: var(--ao-acquired); }
+.ao-step--current { border-top-color: var(--ao-accent); background: var(--ao-bg-1); }
+.ao-step__n {
+  font-family: var(--ao-mono);
+  font-size: var(--ao-t-caption);
+  color: var(--ao-text-3);
+  letter-spacing: 0.1em;
+}
+.ao-step__name { margin-top: var(--ao-s2); font-size: var(--ao-t-body-s); }
+.ao-step--current .ao-step__name { font-weight: 500; }
+
+/* --------------------------------------------------------------------------
+   16. Utilities
+   -------------------------------------------------------------------------- */
+
+.ao-stack > * + * { margin-top: var(--ao-s5); }
+.ao-stack-s > * + * { margin-top: var(--ao-s3); }
+.ao-stack-l > * + * { margin-top: var(--ao-s7); }
+.ao-stack-xl > * + * { margin-top: var(--ao-s9); }
+
+.ao-row { display: flex; align-items: center; gap: var(--ao-s4); flex-wrap: wrap; }
+.ao-row--between { justify-content: space-between; }
+.ao-row--end { justify-content: flex-end; }
+.ao-row--top { align-items: flex-start; }
+
+.ao-rule { height: 1px; background: var(--ao-line); border: 0; margin: 0; }
+.ao-rule--strong { background: var(--ao-line-strong); }
+
+.ao-invert { background: var(--ao-bg); color: var(--ao-text); }
+
+.ao-hide-sm { display: none; }
+@media (min-width: 672px) { .ao-hide-sm { display: revert; } }
+
+.ao-list { margin: 0; padding: 0; list-style: none; }
+.ao-list--ticked li {
+  position: relative;
+  padding-left: var(--ao-s6);
+  margin-bottom: var(--ao-s3);
+  font-size: var(--ao-t-body-s);
+  color: var(--ao-text-2);
+}
+.ao-list--ticked li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.5rem;
+  height: 1px;
+  background: var(--ao-accent);
+}
+
+.ao-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+@media print {
+  .ao-no-print { display: none !important; }
+}
+
+/* ==========================================================================
+   Simulator charts
+   --------------------------------------------------------------------------
+   These live in the design system rather than the prototype shell because
+   the Squarespace build ships this stylesheet and nothing else. A chart that
+   is only styled in the prototype looks correct in review and arrives on the
+   marketing site as unstyled black lines.
+   ========================================================================== */
+
+/* --- rocketry charts ----------------------------------------------------- */
+
+.rk-chart svg { width: 100%; height: auto; display: block; }
+.rk-grid { stroke: var(--ao-line); stroke-width: 1; }
+.rk-axis { fill: var(--ao-text-3); font-family: var(--ao-mono); font-size: 10px; }
+.rk-axis--thrust { fill: var(--ao-ember); }
+.rk-alt { fill: none; stroke: var(--ao-accent); stroke-width: 2; }
+.rk-thrust { fill: none; stroke: var(--ao-ember); stroke-width: 1.4; opacity: .8; }
+.rk-burnout { stroke: var(--ao-text-3); stroke-width: 1; stroke-dasharray: 4 4; }
+.rk-label { fill: var(--ao-text-3); font-family: var(--ao-mono); font-size: 10px; }
+.rk-bar { fill: var(--ao-line-strong); }
+.rk-bar.is-transonic { fill: var(--ao-ember); opacity: .75; }
+.rk-bar.is-current { fill: var(--ao-accent); }
+
+/* --- launch planner ------------------------------------------------------ */
+
+.lp-land { color: var(--ao-text-3); opacity: .45; }
+.lp-grat { fill: none; stroke: var(--ao-line); stroke-width: .75; }
+.lp-equator { fill: none; stroke: var(--ao-ember); stroke-width: 1; stroke-dasharray: 5 5; opacity: .7; }
+.lp-corridor { fill: none; stroke: var(--ao-accent); stroke-width: .8; opacity: .13; }
+.lp-track { fill: none; stroke: var(--ao-accent); stroke-width: 2; }
+.lp-site circle { fill: var(--ao-text-2); }
+.lp-site text {
+  fill: var(--ao-text-2); font-family: var(--ao-mono); font-size: 11px;
+  paint-order: stroke; stroke: var(--ao-bg-1); stroke-width: 3px;
+}
+.lp-site.is-primary circle { fill: var(--ao-ember); }
+.lp-site.is-primary text { fill: var(--ao-text); }
+.lp-site__halo { fill: none; stroke: var(--ao-ember); stroke-width: 1; opacity: .5; }
+.lp-good { color: var(--ao-acquired); }
+.lp-bad { color: var(--ao-alert); }
+.ao-spec td.lp-good { color: var(--ao-acquired); }
+.ao-spec td.lp-bad { color: var(--ao-alert); }
+
+/* --- attitude control ---------------------------------------------------- */
+
+.at-angle { fill: none; stroke: var(--ao-accent); stroke-width: 2; }
+.at-target { stroke: var(--ao-text-3); stroke-width: 1; stroke-dasharray: 6 4; }
+.at-band { fill: var(--ao-acquired); opacity: .12; }
+.at-momentum { fill: none; stroke: var(--ao-ember); stroke-width: 1.8; }
+.at-limit { stroke: var(--ao-alert); stroke-width: 1; stroke-dasharray: 4 4; opacity: .7; }
+.at-saturated { fill: var(--ao-alert); opacity: .10; }
+.rk-label--alert { fill: var(--ao-alert); }
