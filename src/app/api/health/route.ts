@@ -228,7 +228,7 @@ export async function GET() {
           ? `NEXT_PUBLIC_SUPABASE_URL is set but is not a usable URL (${urlValid}). It must be the full origin including the scheme — https://<project-ref>.supabase.co — not the bare hostname, not the dashboard link. Fix it, then redeploy with "Use existing Build Cache" UNTICKED.`
           : blocking.length > 0
           ? 'Set the listed variables for the Production environment, then redeploy with "Use existing Build Cache" UNTICKED. Build-time variables do not change without a rebuild.'
-          : 'Config looks complete. Next: apply migrations 0001-0010 in the Supabase SQL editor, then enable Authentication → Hooks → Customize Access Token → public.custom_access_token_hook.',
+          : 'Config looks complete. Next: apply EVERY migration in supabase/migrations/, in filename order, in the Supabase SQL editor — then enable Authentication → Hooks → Customize Access Token → public.custom_access_token_hook. Applying only some of them leaves a half-migrated database, which is worse than none because it half-works.',
     },
     {
       status: blocking.length === 0 ? 200 : 503,
