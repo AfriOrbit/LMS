@@ -204,7 +204,10 @@ export default async function SetupPage({
       present: Boolean(salt),
       required: true,
       buildTime: false,
-      note: 'Any long random string. Generate with: openssl rand -hex 32',
+      note:
+        'Any long random string. Generate with: openssl rand -hex 32. ' +
+        'NOT a Supabase variable — the Supabase Vercel integration will never ' +
+        'create it, so if you delete it while re-syncing, you must add it back by hand.',
       problem: salt && salt.length < 16 ? 'Too short to be useful. Use at least 32 characters.' : undefined,
     },
     {
