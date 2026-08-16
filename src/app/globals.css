@@ -1,0 +1,518 @@
+@import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
+
+/* Fonts ship in the package. `next/font/google` fetches over the network at
+   build time and fails CI opaquely; these were installed and then never
+   imported, so the app rendered in system fonts. */
+@import '@fontsource-variable/inter';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+/* ==========================================================================
+   AfriOrbit LMS — design system
+
+   The same grammar as afriorbit.space, applied to an application.
+
+   TWO REGISTERS, AND WHICH GOES WHERE
+
+   Light shell for everything a visitor can reach without signing in — home,
+   catalogue, login, certificate verification. Those pages sit next to the
+   company site in a user's mind, and arriving from it should not feel like
+   landing on a different product.
+
+   Dark Gotham for the signed-in application — dashboard, lessons, labs,
+   admin. That is the instrument, and it should look like one.
+
+   This is Palantir's own split (palantir.com is light; Gotham and AIP are
+   dark), and it makes the Home ↔ Learning Hub crossing read as deliberate
+   rather than as two teams who never spoke.
+
+   HOW IT IS WIRED
+
+   Components name semantic tokens only — `--text`, `--border`, `--accent` —
+   never a palette step. `.surface-light` and `.surface-dark` redeclare those
+   tokens, so the SAME component renders correctly in either register with no
+   variant prop and no conditional class. The route group decides: the app and
+   admin layouts open a `.surface-dark` shell; everything else inherits light
+   from <body>.
+
+   Every foreground/background pair below is contrast-checked against WCAG AA
+   on BOTH surfaces it can appear on — the status colours in particular, since
+   a green that reads on near-black is usually invisible on white.
+   ========================================================================== */
+
+@theme {
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Dark register — near-blacks, not blue-blacks. */
+  --color-void-950: #06080b;
+  --color-void-900: #0a0c10;
+  --color-void-850: #0f1319;
+  --color-void-800: #12161c;
+  --color-void-700: #1f2731;
+  --color-void-600: #2d3846;
+  --color-void-500: #3f4c5d;
+
+  /* Accent. Deep institutional blue on light, Gotham cyan on dark. */
+  --color-ion-50: #eef6ff;
+  --color-ion-100: #d8ebff;
+  --color-ion-200: #b4dcff;
+  --color-ion-300: #7fc8ff;
+  --color-ion-400: #4cc2ff;
+  --color-ion-500: #1f8fd6;
+  --color-ion-600: #0a6cb4;
+  --color-ion-700: #0a4fa0;
+  --color-ion-800: #08407f;
+  --color-ion-900: #06325f;
+
+  /* Warning. The old brand orange, pulled towards amber so it reads as a
+     state rather than as decoration. */
+  --color-ember-400: #f0b429;
+  --color-ember-500: #c98a06;
+  --color-ember-600: #9a6800;
+
+  /* Good. */
+  --color-signal-400: #3ddc97;
+  --color-signal-500: #12a06d;
+  --color-signal-600: #0b7a52;
+
+  /* Critical. */
+  --color-alert-400: #ff8a8a;
+  --color-alert-500: #e5484d;
+  --color-alert-600: #c2181e;
+}
+
+/* ==========================================================================
+   Semantic tokens, and the theme.
+
+   ONE THEME FOR THE WHOLE PLATFORM, CHOSEN BY THE READER.
+
+   This used to be two fixed registers — light for the public pages, dark for
+   the signed-in application — decided by which route group you were in. A
+   toggle makes that untenable: a reader who picks dark and then lands on the
+   catalogue should not be thrown back into white, and "dark" cannot mean
+   "except over there".
+
+   So the theme lives on <html data-theme>, one value for everything, and the
+   route no longer has an opinion. `.surface-light` / `.surface-dark` survive
+   as explicit overrides for the few places that genuinely need to pin a
+   register regardless of theme.
+
+   `data-theme` is written by an inline script in the document head, before
+   first paint — see ThemeScript in src/components/theme.tsx. Doing it in an
+   effect instead produces a flash of the wrong theme on every single page
+   load, which is the one bug every theme toggle ships with.
+   ========================================================================== */
+
+:root,
+[data-theme='light'],
+.surface-light {
+  --bg: #ffffff;
+  --bg-elevated: #f4f4f1;
+  --bg-card: #ffffff;
+  --bg-hover: #f4f4f1;
+  --border: #e3e3dd;
+  --border-strong: #c9c9c1;
+  --text: #08090a;
+  --text-muted: #4a4e55;
+  --text-faint: #6c7179;
+
+  --accent: var(--color-ion-700);
+  --accent-hover: var(--color-ion-800);
+  --accent-ink: #ffffff;
+  --accent-line: color-mix(in srgb, var(--color-ion-700) 40%, transparent);
+  --accent-bg: color-mix(in srgb, var(--color-ion-700) 6%, transparent);
+
+  --good: var(--color-signal-600);
+  --good-line: color-mix(in srgb, var(--color-signal-600) 38%, transparent);
+  --good-bg: color-mix(in srgb, var(--color-signal-600) 7%, transparent);
+  --warn: var(--color-ember-600);
+  --warn-line: color-mix(in srgb, var(--color-ember-600) 38%, transparent);
+  --warn-bg: color-mix(in srgb, var(--color-ember-600) 8%, transparent);
+  --bad: var(--color-alert-600);
+  --bad-line: color-mix(in srgb, var(--color-alert-600) 38%, transparent);
+  --bad-bg: color-mix(in srgb, var(--color-alert-600) 6%, transparent);
+
+  --invert-bg: #08090a;
+  --invert-fg: #ffffff;
+
+  color-scheme: light;
+}
+
+[data-theme='dark'],
+.surface-dark {
+  --bg: var(--color-void-900);
+  --bg-elevated: var(--color-void-850);
+  --bg-card: var(--color-void-800);
+  --bg-hover: var(--color-void-800);
+  --border: var(--color-void-700);
+  --border-strong: var(--color-void-600);
+  --text: #e9eef4;
+  --text-muted: #9aa5b4;
+  --text-faint: #7c8695;
+
+  --accent: var(--color-ion-400);
+  --accent-hover: var(--color-ion-300);
+  --accent-ink: var(--color-void-900);
+  --accent-line: color-mix(in srgb, var(--color-ion-400) 40%, transparent);
+  --accent-bg: color-mix(in srgb, var(--color-ion-400) 10%, transparent);
+
+  --good: var(--color-signal-400);
+  --good-line: color-mix(in srgb, var(--color-signal-400) 38%, transparent);
+  --good-bg: color-mix(in srgb, var(--color-signal-400) 10%, transparent);
+  --warn: var(--color-ember-400);
+  --warn-line: color-mix(in srgb, var(--color-ember-400) 38%, transparent);
+  --warn-bg: color-mix(in srgb, var(--color-ember-400) 10%, transparent);
+  --bad: var(--color-alert-400);
+  --bad-line: color-mix(in srgb, var(--color-alert-400) 38%, transparent);
+  --bad-bg: color-mix(in srgb, var(--color-alert-400) 10%, transparent);
+
+  --invert-bg: #ffffff;
+  --invert-fg: #08090a;
+
+  color-scheme: dark;
+}
+
+/* The two override classes must also paint their own background, because they
+   are applied to a div in the middle of the page rather than to <html>. */
+.surface-light,
+.surface-dark {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* --------------------------------------------------------------------------
+   The contrast panel.
+
+   The marketing pages alternate between the page surface and a heavier
+   "instrument" panel — the device that gives the layout its rhythm. In the
+   light theme that panel is near-black. In the dark theme it cannot also be
+   near-black, or it disappears; there it becomes a RECESSED panel, darker than
+   the page with a brighter edge.
+
+   Same component, same markup, correct in both. `tone="dark"` in the marketing
+   components resolves to this rather than to a hardcoded dark surface.
+   -------------------------------------------------------------------------- */
+
+.panel-contrast {
+  --bg: var(--color-void-900);
+  --bg-elevated: var(--color-void-850);
+  --bg-card: var(--color-void-800);
+  --bg-hover: var(--color-void-800);
+  --border: var(--color-void-700);
+  --border-strong: var(--color-void-600);
+  --text: #e9eef4;
+  --text-muted: #9aa5b4;
+  --text-faint: #7c8695;
+
+  --accent: var(--color-ion-400);
+  --accent-hover: var(--color-ion-300);
+  --accent-ink: var(--color-void-900);
+  --accent-line: color-mix(in srgb, var(--color-ion-400) 40%, transparent);
+  --accent-bg: color-mix(in srgb, var(--color-ion-400) 10%, transparent);
+
+  --good: var(--color-signal-400);
+  --good-line: color-mix(in srgb, var(--color-signal-400) 38%, transparent);
+  --good-bg: color-mix(in srgb, var(--color-signal-400) 10%, transparent);
+  --warn: var(--color-ember-400);
+  --warn-line: color-mix(in srgb, var(--color-ember-400) 38%, transparent);
+  --warn-bg: color-mix(in srgb, var(--color-ember-400) 10%, transparent);
+  --bad: var(--color-alert-400);
+  --bad-line: color-mix(in srgb, var(--color-alert-400) 38%, transparent);
+  --bad-bg: color-mix(in srgb, var(--color-alert-400) 10%, transparent);
+
+  --invert-bg: #ffffff;
+  --invert-fg: #08090a;
+
+  color-scheme: dark;
+  background: var(--bg);
+  color: var(--text);
+}
+
+[data-theme='dark'] .panel-contrast {
+  --bg: var(--color-void-950);
+  --bg-elevated: #04060a;
+  --bg-card: var(--color-void-900);
+  --bg-hover: var(--color-void-850);
+  --border: var(--color-void-700);
+  --border-strong: var(--color-void-600);
+  background: var(--bg);
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Square, not rounded. The focus ring keeps its offset but loses the radius —
+   a rounded ring on a square control looks like a mistake. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--invert-bg);
+  color: var(--invert-fg);
+}
+
+/* --------------------------------------------------------------------------
+   Type. Shared verbatim with the website so a heading is the same object on
+   both properties.
+   -------------------------------------------------------------------------- */
+
+.t-display {
+  font-size: clamp(2.25rem, 1.2rem + 3.6vw, 4rem);
+  line-height: 0.99;
+  letter-spacing: -0.032em;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.t-h2 {
+  font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.25rem);
+  line-height: 1.06;
+  letter-spacing: -0.026em;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.t-h3 {
+  font-size: 1.0625rem;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+  font-weight: 600;
+}
+
+.t-lead {
+  font-size: clamp(1rem, 0.96rem + 0.3vw, 1.125rem);
+  line-height: 1.6;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+/* The mono eyebrow. Only works small, wide-tracked and genuinely monospace;
+   at 14px with normal tracking it reads as a mistake rather than a label. */
+.t-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+/* Proportional figures. `tabular-nums` gives every digit the width of a zero,
+   which makes a display-size number sit in a puddle of space. Tabular is for
+   columns that must align — use `.tabular` there and nowhere else. */
+.t-stat {
+  font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  font-variant-numeric: proportional-nums;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The faint instrument grid, for dark section headers. */
+.grid-field {
+  position: relative;
+  isolation: isolate;
+}
+
+.grid-field::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 64px 64px;
+  opacity: 0.5;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 20%, transparent 80%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Lesson prose
+ * ------------------------------------------------------------------------ */
+.prose-lesson {
+  color: var(--text);
+  line-height: 1.75;
+  font-size: 1.0625rem;
+  max-width: 74ch;
+}
+
+.prose-lesson > * + * {
+  margin-top: 1.15em;
+}
+
+.prose-lesson h2 {
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  margin-top: 2.4em;
+  margin-bottom: 0.6em;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--border);
+}
+
+.prose-lesson h3 {
+  font-size: 1.175rem;
+  font-weight: 620;
+  margin-top: 1.9em;
+  margin-bottom: 0.5em;
+  color: var(--text);
+}
+
+.prose-lesson p {
+  color: var(--text);
+}
+
+.prose-lesson strong {
+  font-weight: 620;
+  color: var(--text);
+}
+
+.prose-lesson a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose-lesson ul,
+.prose-lesson ol {
+  padding-left: 1.4em;
+}
+
+.prose-lesson ul {
+  list-style: disc;
+}
+
+.prose-lesson ol {
+  list-style: decimal;
+}
+
+.prose-lesson li + li {
+  margin-top: 0.4em;
+}
+
+.prose-lesson li::marker {
+  color: var(--accent);
+}
+
+.prose-lesson code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-line);
+  padding: 0.1em 0.38em;
+}
+
+.prose-lesson pre {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 1rem 1.15rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.prose-lesson pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.prose-lesson blockquote {
+  border-left: 3px solid var(--color-ion-500);
+  padding-left: 1rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.prose-lesson table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.925rem;
+  display: block;
+  overflow-x: auto;
+}
+
+.prose-lesson th,
+.prose-lesson td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose-lesson th {
+  background: color-mix(in srgb, var(--color-ion-500) 10%, transparent);
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.prose-lesson hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.5em 0;
+}
+
+.prose-lesson .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
+}
+
+/* Compact variant used inside quiz prompts and cards. */
+.prose-compact {
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.prose-compact > * + * {
+  margin-top: 0.7em;
+}
+
+.prose-compact code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--accent-bg);
+  padding: 0.08em 0.32em;
+}
+
+.prose-compact ul {
+  list-style: disc;
+  padding-left: 1.3em;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
