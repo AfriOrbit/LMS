@@ -110,10 +110,16 @@ export async function GET() {
   if (url) {
     try {
       const parsed = new URL(url);
+      // The path check is not cosmetic. `https://<ref>.supabase.co/rest/v1/`
+      // has the right scheme and host, so this reported `valid: true` about a
+      // value that makes every query 404 — the SDK appends its own path on top.
+      const path = parsed.pathname.replace(/\/+$/, '');
       urlValid =
-        parsed.protocol === 'https:' && parsed.hostname.endsWith('.supabase.co')
-          ? true
-          : `parsed, but host is "${parsed.hostname}" and protocol "${parsed.protocol}"`;
+        parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co')
+          ? `host is "${parsed.hostname}" and protocol "${parsed.protocol}"`
+          : path !== ''
+            ? `has a path ("${path}") — that is an endpoint, not the project URL. Use the bare https://<ref>.supabase.co`
+            : true;
     } catch {
       urlValid = 'not a parseable URL';
     }

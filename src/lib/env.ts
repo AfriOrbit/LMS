@@ -85,7 +85,7 @@ export const publicEnv = {
   supabaseAnonKey: anonKey,
   siteUrl: resolveSiteUrl(),
   brandName: process.env.NEXT_PUBLIC_BRAND_NAME ?? 'AfriOrbit Space',
-  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? 'learn@afriorbit.space',
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? 'info@afriorbit.space',
 } as const;
 
 export function assertPublicEnv(): void {
@@ -150,6 +150,28 @@ export function publicEnvProblems(): EnvProblem[] {
       reason: 'malformed',
       detail: 'set, but not a valid http(s) URL — it needs the https:// scheme',
     });
+  } else if (supabaseUrlPath() !== '') {
+    /*
+     * A PATH ON THE PROJECT URL, which this check missed for a long time.
+     *
+     * Supabase's dashboard shows several addresses, and the one people copy is
+     * often the REST endpoint — `https://<ref>.supabase.co/rest/v1/` — rather
+     * than the Project URL. It has the right scheme and the right hostname, so
+     * every check here passed it, and `valid: true` appeared on the health
+     * endpoint next to an application that could not read a single row.
+     *
+     * The SDK appends its own path. Given the REST endpoint it requests
+     * `…/rest/v1/rest/v1/profiles`, which 404s on every query — no error at
+     * startup, no error in the build, just an app where nothing loads.
+     */
+    problems.push({
+      name: 'NEXT_PUBLIC_SUPABASE_URL',
+      reason: 'malformed',
+      detail:
+        `set to "…${supabaseUrlPath()}" — that is an endpoint, not the project URL. ` +
+        'The SDK adds its own path, so this becomes a doubled path and every query 404s. ' +
+        'Use the bare origin: https://<project-ref>.supabase.co',
+    });
   }
 
   if (!publicEnv.supabaseAnonKey) {
@@ -161,6 +183,16 @@ export function publicEnvProblems(): EnvProblem[] {
   }
 
   return problems;
+}
+
+/** The path portion of the Supabase URL, '' when it is a bare origin. */
+function supabaseUrlPath(): string {
+  try {
+    const { pathname } = new URL(publicEnv.supabaseUrl);
+    return pathname === '/' ? '' : pathname.replace(/\/+$/, '');
+  } catch {
+    return '';
+  }
 }
 
 /**

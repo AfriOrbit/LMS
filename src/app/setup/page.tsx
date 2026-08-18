@@ -93,6 +93,10 @@ function looksLikeSupabaseUrl(value: string): string | undefined {
   if (!url.hostname.endsWith('.supabase.co') && !url.hostname.endsWith('.supabase.in')) {
     return 'Does not look like a Supabase project URL (expected …​.supabase.co).';
   }
+  const path = url.pathname.replace(/\/+$/, '');
+  if (path !== '') {
+    return `This is an endpoint, not the project URL — it ends in "${path}". The Supabase client adds its own path, so every query would request a doubled path and 404. Use just https://${url.hostname}`;
+  }
   if (value.endsWith('/')) return 'Remove the trailing slash.';
   return undefined;
 }

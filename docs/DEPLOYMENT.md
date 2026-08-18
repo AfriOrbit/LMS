@@ -151,7 +151,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY  <anon key>
 SUPABASE_SERVICE_ROLE_KEY      <service role key>
 NEXT_PUBLIC_SITE_URL           https://learn.afriorbit.space
 NEXT_PUBLIC_BRAND_NAME         AfriOrbit Space
-NEXT_PUBLIC_SUPPORT_EMAIL      learn@afriorbit.space
+NEXT_PUBLIC_SUPPORT_EMAIL      info@afriorbit.space
 IP_HASH_SALT                   <openssl rand -hex 32>
 MFA_POLICY                     all
 REGISTRATION_MODE              approval
