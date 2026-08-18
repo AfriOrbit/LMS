@@ -210,8 +210,32 @@ baked in.
 
 ## 4. Supabase, once the app is up
 
-1. Apply the twelve migrations in `supabase/migrations/`, in filename order, via
-   the SQL editor.
+1. **Apply the schema.** SQL Editor → New query → paste
+   **`supabase/apply/RUN_ALL_MIGRATIONS.sql`** → Run. That is all twelve
+   migrations in filename order in one file, generated from
+   `supabase/migrations/` by `npm run db:bundle`.
+
+   Read the table it prints at the end: every row should say `OK`. To see the
+   same census without changing anything — before, or later when you are not
+   sure what state the database is in — run `supabase/apply/PREFLIGHT.sql`.
+
+   Applying *some* migrations is worse than applying none: the app half-works,
+   and the failures point everywhere except at the cause. The combined file is
+   written to be safe over a partial schema and safe to run twice, so if a run
+   stops with an error, fix the error and paste the whole thing again rather
+   than trying to work out where it stopped. Seed content is upserted by slug;
+   learner accounts, enrolments, progress and certificates are never touched.
+
+   If the paste is too large for the editor, use `RUN_PART_1.sql`,
+   `RUN_PART_2.sql`, `RUN_PART_3.sql` in that order instead.
+
+   Storage buckets and their policies are the one part that may not apply:
+   `storage.objects` is owned by `supabase_storage_admin`, and whether the SQL
+   editor may add policies to it varies by project. Those statements carry
+   their own error handlers, so a project that refuses them logs a `WARNING`
+   naming the policy and everything else still installs. Add the named policies
+   under Storage → Policies if you need file uploads.
+
 2. Authentication → Hooks → **Customize Access Token** → enable
    `public.custom_access_token_hook`. Without it every account reads as a
    pending learner and the dashboard is unreachable.
