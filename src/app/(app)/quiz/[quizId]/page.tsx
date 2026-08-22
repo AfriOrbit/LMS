@@ -129,7 +129,7 @@ export default async function QuizPage({
                   <h2 className="text-base font-semibold">
                     Attempt {lastGraded.attempt_no}:{' '}
                     <span
-                      className={lastGraded.passed ? 'text-signal-400' : 'text-alert-400'}
+                      className={lastGraded.passed ? 'text-[var(--good)]' : 'text-[var(--bad)]'}
                     >
                       {Number(lastGraded.score_pct).toFixed(0)}%
                     </span>
@@ -152,11 +152,11 @@ export default async function QuizPage({
                   {lastGraded.breakdown.map((item, index) => (
                     <div
                       key={item.question_id}
-                      className="rounded-lg border border-[var(--border)] p-3"
+                      className="border border-[var(--border)] p-3"
                     >
                       <p className="text-sm font-medium">
                         <span
-                          className={item.correct ? 'text-signal-400' : 'text-alert-400'}
+                          className={item.correct ? 'text-[var(--good)]' : 'text-[var(--bad)]'}
                         >
                           {item.correct ? '✓' : '✗'}
                         </span>{' '}

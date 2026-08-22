@@ -8,7 +8,7 @@ export default function RegisterPage() {
   const approvalRequired = process.env.REGISTRATION_MODE !== 'open';
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-8">
+    <div className="border border-[var(--border)] bg-[var(--bg-card)] p-8">
       <h1 className="text-xl font-semibold tracking-tight">Create an account</h1>
       <p className="mt-1.5 text-sm text-[var(--text-muted)]">
         {approvalRequired
@@ -20,7 +20,7 @@ export default function RegisterPage() {
 
       <p className="mt-6 text-center text-sm text-[var(--text-muted)]">
         Already registered?{' '}
-        <Link href="/login" className="text-ion-300 hover:underline">
+        <Link href="/login" className="text-[var(--accent)] hover:underline">
           Sign in
         </Link>
       </p>

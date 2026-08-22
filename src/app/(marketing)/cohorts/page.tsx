@@ -55,7 +55,7 @@ export default async function CohortsPage() {
 
                 <h2 className="text-base font-semibold leading-snug">{cohort.name}</h2>
                 {cohort.courses ? (
-                  <p className="mt-1 text-sm text-ion-300">
+                  <p className="mt-1 text-sm text-[var(--accent)]">
                     <Link href={`/catalog/${cohort.courses.slug}`} className="hover:underline">
                       {cohort.courses.title}
                     </Link>

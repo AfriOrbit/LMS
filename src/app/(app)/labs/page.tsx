@@ -92,7 +92,7 @@ export default async function LabsPage() {
                 <Card key={assignment.id}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-mono text-sm font-semibold text-ion-300">
+                      <p className="font-mono text-sm font-semibold text-[var(--accent)]">
                         {kit.asset_tag}
                       </p>
                       <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -141,7 +141,7 @@ export default async function LabsPage() {
                       <h3 className="text-sm font-semibold">
                         <Link
                           href={`/labs/${assignment.slug}`}
-                          className="hover:text-ion-300"
+                          className="hover:text-[var(--accent)]"
                         >
                           {assignment.title}
                         </Link>
@@ -198,7 +198,7 @@ export default async function LabsPage() {
                       </p>
                     ) : null}
                     {session.ground_station ? (
-                      <p className="mt-2 font-mono text-xs text-ion-300">
+                      <p className="mt-2 font-mono text-xs text-[var(--accent)]">
                         {session.ground_station}
                         {session.norad_id ? ` · NORAD ${session.norad_id}` : ''}
                         {session.tle_line1 ? ' · TLE cached' : ''}

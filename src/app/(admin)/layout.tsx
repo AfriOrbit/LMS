@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b border-ember-500/25 bg-[var(--bg)]/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-[var(--warn-line)] bg-[var(--bg)]/90 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-4">
             <Logo />
@@ -42,7 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link
               key={item.href}
               href={item.href}
-              className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-[var(--text-muted)] transition-colors hover:bg-void-800 hover:text-[var(--text)]"
+              className="whitespace-nowrap px-3 py-1.5 text-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text)]"
             >
               {item.label}
             </Link>

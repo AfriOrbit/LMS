@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { computeDataBudget, type DataBudgetInput } from '@/lib/edusat/power';
 import { Alert, Badge, Button, Card, Field, Input, Stat } from '@/components/ui/primitives';
+import { groupNumber } from '@/lib/utils';
 
 function NumberField({
   label,
@@ -55,12 +56,15 @@ function Term({
   );
 }
 
-/** Group digits so a seven-digit bit count is readable at a glance. */
+/**
+ * Group digits so a seven-digit bit count is readable at a glance.
+ *
+ * Deliberately not `toLocaleString`: Node's ICU build and the browser's can
+ * disagree on the group separator, which shows up as a React hydration
+ * mismatch rather than as anything obviously wrong.
+ */
 function grouped(n: number, digits = 0): string {
-  return n.toLocaleString('en-GB', {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
+  return groupNumber(n, digits);
 }
 
 function bytesHuman(bytes: number): string {

@@ -57,8 +57,50 @@ function redirect(request: NextRequest, pathname: string, from?: string) {
   return NextResponse.redirect(url);
 }
 
+/**
+ * The Supabase origin, as something that is safe to put in a header.
+ *
+ * Never interpolate a raw environment value into an HTTP header. A trailing
+ * newline on a pasted variable makes `Headers.set` throw `invalid header
+ * value`; because this runs in the proxy, that throw turns into a 500 on every
+ * single route while the build stays green — one of the least diagnosable
+ * failures this app can have.
+ *
+ * `new URL(...).origin` is structurally incapable of containing whitespace, so
+ * parsing and re-serialising removes the hazard rather than papering over it.
+ * If the value will not parse, the entry is simply omitted: the
+ * `https://*.supabase.co` wildcard on the same directive still covers every
+ * real project, so the policy stays correct and the site stays up.
+ */
+function supabaseOrigin(): string {
+  try {
+    return new URL(publicEnv.supabaseUrl).origin;
+  } catch {
+    return '';
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  /*
+   * THE MARKETING SITE USED TO BE SERVED FROM HERE, AND IS NOT ANY MORE.
+   *
+   * There was a branch at the top of this function that matched the apex
+   * hostname and rewrote it to a /www route group holding a vendored copy of
+   * afriorbit.space. The company site is now its own deployment with its own
+   * repository, so that copy was a second source of truth for the same nine
+   * pages — and a live trap: attaching afriorbit.space to THIS project would
+   * have served the old design, silently, while the new one sat unreachable on
+   * another deployment.
+   *
+   * Removing it also removes a `dangerouslySetInnerHTML` surface and about
+   * 220 kB of vendored HTML and JavaScript from this repository.
+   *
+   * Consequence worth knowing: this project must never have afriorbit.space
+   * attached to it. Only develop.afriorbit.space (or whatever the LMS
+   * hostname becomes) belongs here.
+   */
 
   /*
    * Fail visibly, not fatally.
@@ -86,20 +128,58 @@ export async function proxy(request: NextRequest) {
 
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
+  /*
+   * The constructor is inside a try, and the check above is not redundant with
+   * it.
+   *
+   * The check above knows *why* a value is unusable and can say so. This catch
+   * knows only that something threw — but it covers the cases nobody
+   * anticipated, and in this position that matters more than the quality of
+   * the message. Anything that throws here throws on every request the proxy
+   * matches, which is every page, `/setup` included. A site whose diagnostic
+   * page is taken down by the fault it diagnoses has no way back in except
+   * reading platform logs, and the whole point of /setup is to spare someone
+   * that.
+   *
+   * `Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL` is the throw that
+   * prompted this. It should now be impossible to reach — and if some future
+   * version of the SDK finds a new reason to reject its arguments, the site
+   * degrades to a page explaining itself rather than to 500s.
+   */
+  let supabase: ReturnType<typeof createServerClient>;
+  try {
+    supabase = createServerClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
+    });
+  } catch (error) {
+    console.error(
+      'AFRIORBIT_SERVER_ERROR [proxy] the Supabase client could not be constructed. ' +
+        'This is a configuration fault, not a code fault — see /setup.',
+      error,
+    );
+    if (pathname === '/setup') {
+      const pass = NextResponse.next({ request });
+      applySecurityHeaders(pass, request);
+      return pass;
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = '/setup';
+    url.search = '?missing=NEXT_PUBLIC_SUPABASE_URL';
+    const out = NextResponse.redirect(url);
+    applySecurityHeaders(out, request);
+    return out;
+  }
 
   // Verifies the JWT (locally when asymmetric keys are in use) and refreshes
   // the session when needed. Must run before any redirect so the refreshed
@@ -202,7 +282,7 @@ function applySecurityHeaders(response: NextResponse, request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://*.supabase.co",
     "font-src 'self' data:",
-    `connect-src 'self' ${publicEnv.supabaseUrl} https://*.supabase.co wss://*.supabase.co https://api.stripe.com`,
+    `connect-src 'self' ${supabaseOrigin()} https://*.supabase.co wss://*.supabase.co https://api.stripe.com`,
     "media-src 'self' https://*.supabase.co",
     "frame-src 'self' https://js.stripe.com",
     `frame-ancestors ${frameAncestors}`,

@@ -15,10 +15,11 @@ export const metadata: Metadata = {
  * that are absent *at runtime in the deployed bundle*, which is a different
  * question from whether they are present in the hosting dashboard.
  *
- * It reports presence and shape only. No value is ever rendered — not even a
- * masked one for the service role key, because a length and a prefix are
- * enough to narrow a brute force and this page is unauthenticated by
- * necessity: it has to work before anything else does.
+ * No SECRET value is ever rendered — not even a masked one for the service role
+ * key, because a length and a prefix are enough to narrow a brute force and
+ * this page is unauthenticated by necessity: it has to work before anything
+ * else does. The two `NEXT_PUBLIC_` URLs are shown verbatim, which is a
+ * deliberate exception argued out at `showValue` below.
  */
 
 type Check = {
@@ -28,7 +29,57 @@ type Check = {
   buildTime: boolean;
   note: string;
   problem?: string;
+  /**
+   * The value as the running code received it — set ONLY for variables that are
+   * public by definition. See `showValue` below for why this exists and why the
+   * keys will never have it.
+   */
+  received?: string;
 };
+
+/**
+ * WHY A VALUE IS PRINTED HERE AT ALL, HAVING SAID IT NEVER WOULD BE.
+ *
+ * This page reported "not a valid URL" three times running and the variable
+ * still did not get fixed, which is not a failure of attention. The value looks
+ * perfect in the hosting dashboard, because the things that break it are
+ * invisible there: a missing scheme reads fine to a human, and a trailing
+ * newline, a smart quote or a zero-width character from a copy-paste cannot be
+ * seen at all. Being told "wrong" repeatedly without being shown *what is
+ * there* is a loop with no exit.
+ *
+ * It is only ever called for `NEXT_PUBLIC_*` variables. Those are compiled into
+ * the JavaScript bundle every visitor downloads — they are already public, and
+ * withholding them here protects nothing while costing the diagnosis. The anon
+ * key is excluded anyway: technically public, but long, and printing it invites
+ * someone to paste this screenshot into a chat thread.
+ *
+ * `JSON.stringify` does the real work. It renders a newline as \n, shows the
+ * quotes as characters if quotes were pasted in, and makes trailing spaces
+ * countable.
+ */
+function showValue(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  return JSON.stringify(raw);
+}
+
+/**
+ * Whitespace inside a value is invisible in every dashboard and catastrophic in
+ * one specific place: a trailing newline on the Supabase URL made `Headers.set`
+ * throw on the CSP, which 500'd every route while the build stayed green. The
+ * code now trims and re-parses so it cannot happen again, but a value with
+ * stray whitespace is still a paste error worth reporting, because the same
+ * newline will be sitting on the key too.
+ */
+function whitespaceProblem(raw: string | undefined, label: string): string | undefined {
+  if (!raw) return undefined;
+  if (raw !== raw.trim()) {
+    const kind = /[\r\n]/.test(raw) ? 'a line break' : 'leading or trailing spaces';
+    return `This value has ${kind} around it. Re-copy it — select the text precisely, or use the copy button in the ${label} dashboard rather than dragging to select.`;
+  }
+  if (/[\r\n]/.test(raw)) return 'This value contains a line break in the middle. It has been pasted wrong.';
+  return undefined;
+}
 
 function looksLikeSupabaseUrl(value: string): string | undefined {
   if (!value) return undefined;
@@ -41,6 +92,10 @@ function looksLikeSupabaseUrl(value: string): string | undefined {
   if (url.protocol !== 'https:') return 'Must be https://.';
   if (!url.hostname.endsWith('.supabase.co') && !url.hostname.endsWith('.supabase.in')) {
     return 'Does not look like a Supabase project URL (expected …​.supabase.co).';
+  }
+  const path = url.pathname.replace(/\/+$/, '');
+  if (path !== '') {
+    return `This is an endpoint, not the project URL — it ends in "${path}". The Supabase client adds its own path, so every query would request a doubled path and 404. Use just https://${url.hostname}`;
   }
   if (value.endsWith('/')) return 'Remove the trailing slash.';
   return undefined;
@@ -73,8 +128,23 @@ export default async function SetupPage({
   const reportedMissing = (missing ?? '').split(',').filter(Boolean);
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-  const service = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  // Both spellings. Supabase renamed anon -> publishable and service_role ->
+  // secret, and its Vercel integration writes the new names. Reporting only
+  // the old ones would tell someone a variable is missing while it is sitting
+  // right there in their dashboard under a different name.
+  const anon =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '';
+  const anonVia = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ? 'NEXT_PUBLIC_SUPABASE_ANON_KEY'
+    : process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+      ? 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'
+      : '';
+  const service = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY ?? '';
+  const serviceVia = process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? 'SUPABASE_SERVICE_ROLE_KEY'
+    : process.env.SUPABASE_SECRET_KEY
+      ? 'SUPABASE_SECRET_KEY'
+      : '';
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? '';
   const salt = process.env.IP_HASH_SALT ?? '';
 
@@ -85,40 +155,63 @@ export default async function SetupPage({
       required: true,
       buildTime: true,
       note: 'Supabase → Project Settings → Data API → Project URL',
-      problem: looksLikeSupabaseUrl(url),
+      problem: whitespaceProblem(process.env.NEXT_PUBLIC_SUPABASE_URL, 'Supabase') ?? looksLikeSupabaseUrl(url),
+      received: showValue(process.env.NEXT_PUBLIC_SUPABASE_URL),
     },
     {
-      name: 'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+      name: anonVia || 'NEXT_PUBLIC_SUPABASE_ANON_KEY',
       present: Boolean(anon),
       required: true,
       buildTime: true,
-      note: 'The anon / publishable key. Public by design — RLS is what protects the data.',
-      problem: looksLikeKey(anon, 'publishable'),
+      note:
+        'The anon / publishable key. Public by design — RLS is what protects the data. ' +
+        'Either NEXT_PUBLIC_SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ' +
+        '(the name the Supabase Vercel integration writes) will do.',
+      problem:
+        whitespaceProblem(
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+          'Supabase',
+        ) ?? looksLikeKey(anon, 'publishable'),
     },
     {
-      name: 'SUPABASE_SERVICE_ROLE_KEY',
+      name: serviceVia || 'SUPABASE_SERVICE_ROLE_KEY',
       present: Boolean(service),
       required: true,
       buildTime: false,
-      note: 'The service_role / secret key. Bypasses RLS entirely — server only, never NEXT_PUBLIC_.',
-      problem: looksLikeKey(service, 'secret'),
+      note:
+        'The service_role / secret key. Bypasses RLS entirely — server only, never NEXT_PUBLIC_. ' +
+        'Either SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY (the newer name, written ' +
+        'by the Supabase Vercel integration) will do.',
+      problem:
+        whitespaceProblem(
+          process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY,
+          'Supabase',
+        ) ?? looksLikeKey(service, 'secret'),
     },
     {
       name: 'NEXT_PUBLIC_SITE_URL',
       present: Boolean(site),
-      required: true,
+      required: false,
       buildTime: true,
-      note: 'This deployment’s own origin, with scheme and no trailing slash.',
+      note:
+        'Optional — defaults to https:// + NEXT_PUBLIC_LMS_HOST. This means THIS app’s ' +
+        'origin (the learning platform), not the marketing site’s.',
       problem: site && !/^https?:\/\/[^/]+$/.test(site)
-        ? 'Must be a bare origin like https://learn.afriorbit.space — no path, no trailing slash.'
+        ? 'Must be a bare origin like https://learn.afriorbit.space — no path, no trailing slash. ' +
+          'It is optional: the simplest fix is to DELETE this variable entirely and let it derive ' +
+          'itself from NEXT_PUBLIC_LMS_HOST.'
         : undefined,
+      received: showValue(process.env.NEXT_PUBLIC_SITE_URL),
     },
     {
       name: 'IP_HASH_SALT',
       present: Boolean(salt),
       required: true,
       buildTime: false,
-      note: 'Any long random string. Generate with: openssl rand -hex 32',
+      note:
+        'Any long random string. Generate with: openssl rand -hex 32. ' +
+        'NOT a Supabase variable — the Supabase Vercel integration will never ' +
+        'create it, so if you delete it while re-syncing, you must add it back by hand.',
       problem: salt && salt.length < 16 ? 'Too short to be useful. Use at least 32 characters.' : undefined,
     },
     {
@@ -137,9 +230,25 @@ export default async function SetupPage({
     },
   ];
 
-  const blocking = checks.filter((c) => c.required && !c.present);
-  const warnings = checks.filter((c) => c.present && c.problem);
-  const missingAtBuild = blocking.filter((c) => c.buildTime);
+  /*
+   * A REQUIRED VARIABLE THAT IS PRESENT BUT UNUSABLE IS BLOCKING.
+   *
+   * This read `c.required && !c.present`, and the omission had teeth. With
+   * NEXT_PUBLIC_SUPABASE_URL set to a bare hostname, this page printed the
+   * headline "Configuration looks complete", the paragraph "Every required
+   * variable is present", and — because the proxy had redirected here — the
+   * stale-build panel saying in bold "You do not need to change any values …
+   * Nothing else is wrong." Every word of that was false, and it pointed at
+   * the wrong fix. The correct diagnosis was in the table lower down, in small
+   * red text, under a headline telling the reader to ignore it.
+   *
+   * `problem` for a required variable now counts as blocking, so the summary
+   * and the detail cannot contradict each other.
+   */
+  const blocking = checks.filter((c) => c.required && (!c.present || Boolean(c.problem)));
+  const unusable = checks.filter((c) => c.required && c.present && c.problem);
+  const warnings = checks.filter((c) => c.present && c.problem && !c.required);
+  const missingAtBuild = blocking.filter((c) => c.buildTime && !c.present);
 
   /*
    * The proxy and this page run in different bundles — middleware and the Node
@@ -148,8 +257,11 @@ export default async function SetupPage({
    * either one: it is the build-time inlining problem made visible, and it is
    * the single most diagnostic thing this page can show.
    */
+  // `&& !c.problem` matters: the proxy also redirects here when a value is
+  // present but unusable, and without that clause this page would read the
+  // redirect as a bundle disagreement and confidently diagnose a stale build.
   const disagreements = reportedMissing.filter((name) =>
-    checks.some((c) => c.name === name && c.present),
+    checks.some((c) => c.name === name && c.present && !c.problem),
   );
 
   /*
@@ -164,10 +276,41 @@ export default async function SetupPage({
       (k) =>
         k.startsWith('NEXT_PUBLIC') ||
         k.includes('SUPABASE') ||
+        k.startsWith('POSTGRES_') ||
         k.startsWith('IP_HASH') ||
         k.startsWith('EMBED_'),
     )
     .sort();
+
+  /*
+   * Which deployment is this, actually?
+   *
+   * When the list above comes back empty the natural next question is whether
+   * the variables are on a DIFFERENT Vercel project from the one being looked
+   * at — easy to do the moment a second project exists for the same repo, and
+   * impossible to tell from a *.vercel.app URL. Vercel injects these on every
+   * deployment it builds, so they identify the project without revealing
+   * anything, and their ABSENCE says something too: it means this is not a
+   * Vercel deployment at all.
+   */
+  const deployment = {
+    project: process.env.VERCEL_PROJECT_PRODUCTION_URL ?? '',
+    env: process.env.VERCEL_ENV ?? '',
+    repo: [process.env.VERCEL_GIT_REPO_OWNER, process.env.VERCEL_GIT_REPO_SLUG]
+      .filter(Boolean)
+      .join('/'),
+    branch: process.env.VERCEL_GIT_COMMIT_REF ?? '',
+    sha: (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 7),
+  };
+  const onVercel = Boolean(process.env.VERCEL);
+
+  // POSTGRES_* and SUPABASE_JWT_SECRET are written only by the Supabase Vercel
+  // integration, never by hand. Seeing them proves the integration reached
+  // this project; not seeing them, when someone believes they connected it,
+  // means it is wired to a different project.
+  const integrationLinked = injectedNames.some(
+    (k) => k.startsWith('POSTGRES_') || k === 'SUPABASE_JWT_SECRET',
+  );
 
   const requiredNames = checks.filter((c) => c.required).map((c) => c.name);
   const neverInjected = requiredNames.filter((n) => !injectedNames.includes(n));
@@ -200,6 +343,42 @@ export default async function SetupPage({
           ? 'The app is running, but it cannot reach Supabase. Nothing below reveals a secret value — only whether each variable arrived.'
           : 'Every required variable is present in this deployment. If pages still fail, the cause is downstream: migrations not applied, or the auth hook not enabled.'}
       </p>
+
+      {unusable.length > 0 && (
+        <div
+          style={{
+            borderLeft: '3px solid #da1e28',
+            background: '#fff1f1',
+            padding: '1rem 1.15rem',
+            margin: '0 0 2rem',
+          }}
+        >
+          <p style={{ margin: 0, fontWeight: 600 }}>
+            {unusable.length > 1 ? 'These variables are' : 'This variable is'} set, but the value
+            cannot be used.
+          </p>
+          <p style={{ margin: '.6rem 0 0' }}>
+            <strong>{unusable.map((c) => c.name).join(', ')}</strong>
+          </p>
+          {unusable.map((c) => (
+            <p key={c.name} style={{ margin: '.6rem 0 0' }}>
+              {c.problem}
+            </p>
+          ))}
+          <p style={{ margin: '.6rem 0 0' }}>
+            This is <em>not</em> a stale build and not a missing variable — the value itself is
+            wrong. Correct it in your hosting dashboard and redeploy with the build cache
+            disabled, because <code>NEXT_PUBLIC_</code> values are compiled in.
+          </p>
+          <p style={{ margin: '.6rem 0 0', color: '#525866' }}>
+            The Supabase project URL is the <strong>Project URL</strong> field under Project
+            Settings → Data API. It looks like{' '}
+            <code>https://abcdefghijklmnop.supabase.co</code> — with the scheme, no trailing
+            slash. It is not the address of the Supabase dashboard, and not the database
+            connection string.
+          </p>
+        </div>
+      )}
 
       {neverInjected.length > 0 && (
         <div
@@ -244,6 +423,32 @@ export default async function SetupPage({
           <p style={{ margin: '.25rem 0 0', fontSize: '.8rem', wordBreak: 'break-all' }}>
             {injectedNames.length > 0 ? injectedNames.join(' · ') : '(none at all)'}
           </p>
+
+          <p style={{ margin: '.9rem 0 0', fontSize: '.8rem', color: '#525866' }}>
+            Which deployment this is:
+          </p>
+          <p style={{ margin: '.25rem 0 0', fontSize: '.8rem', wordBreak: 'break-all' }}>
+            {onVercel
+              ? [
+                  deployment.project && `project ${deployment.project}`,
+                  deployment.env && `environment ${deployment.env}`,
+                  deployment.repo && `repo ${deployment.repo}`,
+                  deployment.branch && `branch ${deployment.branch}`,
+                  deployment.sha && `commit ${deployment.sha}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || 'on Vercel, but it published no project metadata'
+              : 'not a Vercel deployment — no VERCEL environment variables present'}
+          </p>
+          {onVercel && !integrationLinked && (
+            <p style={{ margin: '.9rem 0 0', fontSize: '.8rem', color: '#8a5a00' }}>
+              No <code>POSTGRES_*</code> or <code>SUPABASE_JWT_SECRET</code> here, which
+              means the Supabase Vercel integration is <strong>not</strong> connected to
+              this project. If you believe you connected it, it is attached to a different
+              Vercel project — check the project name above against the one in Supabase →
+              Integrations.
+            </p>
+          )}
         </div>
       )}
 
@@ -339,6 +544,25 @@ export default async function SetupPage({
                 <div style={{ color: '#6f7684', fontSize: '.9em', marginTop: '.2rem' }}>{c.note}</div>
                 {c.problem && (
                   <div style={{ color: '#da1e28', marginTop: '.35rem' }}>⚠ {c.problem}</div>
+                )}
+                {c.received && (
+                  <div style={{ marginTop: '.35rem' }}>
+                    <span style={{ color: '#6f7684' }}>Value received: </span>
+                    <code
+                      style={{
+                        background: '#f2f4f8',
+                        padding: '.1rem .3rem',
+                        wordBreak: 'break-all',
+                      }}
+                    >
+                      {c.received}
+                    </code>
+                    <div style={{ color: '#6f7684', fontSize: '.85em', marginTop: '.2rem' }}>
+                      Shown inside quotes and with escapes, so a stray space, a line break
+                      (<code>\n</code>) or a quote character that was pasted in is visible. This is
+                      a NEXT_PUBLIC_ value — already public in the browser bundle.
+                    </div>
+                  </div>
                 )}
               </td>
               <td style={{ ...td, whiteSpace: 'nowrap' }}>

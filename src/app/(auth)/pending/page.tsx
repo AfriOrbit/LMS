@@ -30,7 +30,7 @@ export default async function PendingPage() {
 
   if (ctx?.profile.status === 'active') {
     return (
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-8 text-center">
+      <div className="border border-[var(--border)] bg-[var(--bg-card)] p-8 text-center">
         <h1 className="text-xl font-semibold">You are all set</h1>
         <p className="mt-2 text-sm text-[var(--text-muted)]">
           Your account is active.
@@ -45,7 +45,7 @@ export default async function PendingPage() {
   const copy = COPY[status] ?? COPY.pending;
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-8">
+    <div className="border border-[var(--border)] bg-[var(--bg-card)] p-8">
       <h1 className="text-xl font-semibold tracking-tight">{copy.title}</h1>
       <div className="mt-4">
         <Alert tone={copy.tone}>{copy.body}</Alert>
@@ -62,7 +62,7 @@ export default async function PendingPage() {
       </div>
 
       <div className="mt-8 flex items-center justify-between border-t border-[var(--border)] pt-5 text-sm">
-        <a href={`mailto:${publicEnv.supportEmail}`} className="text-ion-300 hover:underline">
+        <a href={`mailto:${publicEnv.supportEmail}`} className="text-[var(--accent)] hover:underline">
           Contact the programme team
         </a>
         <Link href="/logout" className="text-[var(--text-muted)] hover:underline">

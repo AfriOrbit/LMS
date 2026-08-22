@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { Logo } from '@/components/site-nav';
+import { WEBSITE_LABEL, WEBSITE_URL } from '@/lib/site-config';
 import { requireUser } from '@/lib/auth';
 import { Badge } from '@/components/ui/primitives';
 
@@ -27,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="rounded-lg px-3 py-1.5 text-sm text-[var(--text-muted)] transition-colors hover:bg-void-800 hover:text-[var(--text)]"
+                  className="px-3 py-1.5 text-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text)]"
                 >
                   {item.label}
                 </Link>
@@ -35,7 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               {isStaff ? (
                 <Link
                   href="/admin"
-                  className="rounded-lg px-3 py-1.5 text-sm text-ember-400 transition-colors hover:bg-void-800"
+                  className="px-3 py-1.5 text-sm text-[var(--warn)] transition-colors hover:bg-[var(--bg-hover)]"
                 >
                   Admin
                 </Link>
@@ -44,6 +45,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-3">
+            {/* The route back to the company site, present for signed-in users too. */}
+            <a
+              href={WEBSITE_URL}
+              className="group hidden items-center gap-1.5 border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text-muted)] transition-colors hover:border-[var(--text-muted)] hover:text-[var(--text)] sm:inline-flex"
+            >
+              {WEBSITE_LABEL}
+              <span aria-hidden className="text-[0.8em] transition-transform group-hover:translate-x-0.5">
+                ↗
+              </span>
+            </a>
             {ctx.profile.status !== 'active' ? (
               <Badge tone="warning">Pending approval</Badge>
             ) : null}
@@ -57,7 +68,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </span>
             <Link
               href="/logout"
-              className="rounded-lg px-2.5 py-1.5 text-sm text-[var(--text-muted)] hover:bg-void-800 hover:text-[var(--text)]"
+              className="px-2.5 py-1.5 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text)]"
             >
               Sign out
             </Link>
@@ -69,7 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link
               key={item.href}
               href={item.href}
-              className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-[var(--text-muted)]"
+              className="whitespace-nowrap px-3 py-1.5 text-sm text-[var(--text-muted)]"
             >
               {item.label}
             </Link>

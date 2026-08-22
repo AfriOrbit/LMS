@@ -37,11 +37,11 @@ export default function VerifyLandingPage() {
             required
             autoFocus
             placeholder="AO-2026-7Q4KX2M9"
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-center font-mono text-lg uppercase tracking-widest focus:border-ion-500 focus:outline-none focus:ring-1 focus:ring-ion-500"
+            className="w-full border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-center font-mono text-lg uppercase tracking-widest focus:border-[var(--accent)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
           />
           <button
             type="submit"
-            className="h-12 w-full rounded-lg bg-ion-600 text-base font-medium text-white hover:bg-ion-500"
+            className="h-12 w-full bg-[var(--accent)] text-base font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-hover)]"
           >
             Verify
           </button>

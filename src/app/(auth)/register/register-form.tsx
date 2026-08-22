@@ -53,7 +53,7 @@ export function RegisterForm() {
             {RULES.map((rule) => (
               <span
                 key={rule.label}
-                className={rule.test(password) ? 'text-signal-400' : undefined}
+                className={rule.test(password) ? 'text-[var(--good)]' : undefined}
               >
                 {rule.test(password) ? '✓' : '•'} {rule.label}
               </span>
@@ -110,18 +110,18 @@ export function RegisterForm() {
           type="checkbox"
           name="acceptTerms"
           required
-          className="mt-0.5 h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-elevated)] accent-[var(--color-ion-500)]"
+          className="mt-0.5 h-4 w-4 border-[var(--border)] bg-[var(--bg-elevated)] accent-[var(--color-ion-500)]"
         />
         <span className="text-[var(--text-muted)]">
           I accept the{' '}
-          <Link href="/terms" className="text-ion-300 hover:underline">
+          <Link href="/terms" className="text-[var(--accent)] hover:underline">
             terms of use
           </Link>{' '}
           and understand that hardware issued to me remains AfriOrbit property.
         </span>
       </label>
       {state.errors?.acceptTerms ? (
-        <p className="text-xs text-alert-400">{state.errors.acceptTerms}</p>
+        <p className="text-xs text-[var(--bad)]">{state.errors.acceptTerms}</p>
       ) : null}
 
       <SubmitButton />

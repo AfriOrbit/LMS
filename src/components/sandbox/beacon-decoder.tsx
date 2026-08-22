@@ -28,7 +28,7 @@ function Row({
   return (
     <tr className="border-b border-[var(--border)] last:border-0">
       <td className="py-1.5 pr-3 font-mono text-xs text-[var(--text-muted)]">{offset}</td>
-      <td className="py-1.5 pr-3 font-mono text-xs text-ion-300">{raw}</td>
+      <td className="py-1.5 pr-3 font-mono text-xs text-[var(--accent)]">{raw}</td>
       <td className="py-1.5 pr-3 text-sm text-[var(--text-muted)]">{label}</td>
       <td className="py-1.5 text-sm font-medium tabular-nums">{value}</td>
     </tr>
@@ -259,10 +259,10 @@ export function BeaconDecoderSandbox() {
                 </table>
               </div>
 
-              <div className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4">
+              <div className="mt-5 border border-[var(--border)] bg-[var(--bg)] p-4">
                 <h3 className="text-sm font-semibold">Operational reading</h3>
                 {!decoded.crcValid ? (
-                  <p className="mt-2 text-sm text-alert-400">
+                  <p className="mt-2 text-sm text-[var(--bad)]">
                     The CRC does not match, so a real ground station would discard this
                     frame before interpreting any field. The values below are shown only so
                     you can see what a corrupted frame would have claimed.
@@ -271,7 +271,7 @@ export function BeaconDecoderSandbox() {
                 <ul className="mt-2 space-y-1.5 text-sm text-[var(--text-muted)]">
                   {decoded.notes.map((note) => (
                     <li key={note} className="flex gap-2">
-                      <span className="text-ion-400">›</span>
+                      <span className="text-[var(--accent)]">›</span>
                       <span>{note}</span>
                     </li>
                   ))}

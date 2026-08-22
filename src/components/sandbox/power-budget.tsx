@@ -64,8 +64,8 @@ function Term({
       <span className="text-sm text-[var(--text-muted)]">{label}</span>
       <span
         className={`font-mono text-sm tabular-nums ${
-          emphasis === 'good' ? 'text-signal-400' : emphasis === 'bad' ? 'text-alert-400' : ''
-        }`}
+ emphasis === 'good' ? 'text-[var(--good)]' : emphasis === 'bad' ? 'text-[var(--bad)]' : ''
+ }`}
       >
         {value.toFixed(digits)} {unit}
       </span>
@@ -352,7 +352,7 @@ export function PowerBudgetSandbox() {
             </div>
 
             {loads.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-[var(--border)] px-4 py-6 text-center text-sm text-[var(--text-muted)]">
+              <p className="border border-dashed border-[var(--border)] px-4 py-6 text-center text-sm text-[var(--text-muted)]">
                 No loads. A spacecraft that draws nothing does nothing.
               </p>
             ) : (
@@ -444,19 +444,19 @@ export function PowerBudgetSandbox() {
 
         <aside className="space-y-5">
           <div
-            className={`rounded-xl border p-5 ${
-              positive
-                ? 'border-signal-500/40 bg-signal-500/6'
-                : 'border-alert-500/40 bg-alert-500/6'
-            }`}
+            className={` border p-5 ${
+ positive
+ ? 'border-[var(--good-line)] bg-[var(--good-bg)]'
+ : 'border-[var(--bad-line)] bg-[var(--bad-bg)]'
+ }`}
           >
             <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
               Power margin
             </p>
             <p
               className={`mt-1 font-mono text-3xl font-semibold tabular-nums ${
-                positive ? 'text-signal-400' : 'text-alert-400'
-              }`}
+ positive ? 'text-[var(--good)]' : 'text-[var(--bad)]'
+ }`}
             >
               {result.marginW >= 0 ? '+' : ''}
               {result.marginW.toFixed(2)} W

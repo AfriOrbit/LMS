@@ -23,7 +23,32 @@ export interface SessionContext {
 export async function getSessionContext(): Promise<SessionContext | null> {
   const supabase = await createSupabaseServerClient();
 
-  const { data: claimsData } = await supabase.auth.getClaims();
+  /*
+   * WRAPPED, for the same reason the identical call in src/proxy.ts is
+   * wrapped — and this one was not, which was an inconsistency waiting to
+   * happen.
+   *
+   * `getClaims` is a network call: it fetches the project's JWKS to verify the
+   * token. If that fetch fails — a paused project, a DNS blip, a cold start
+   * that races the network — the rejection propagates out of every page that
+   * calls this, and a Server Component that rejects is a blank "Internal
+   * Server Error". Note which pages those are: only the signed-in ones. The
+   * marketing site, the catalogue and the login page would all keep working,
+   * which makes the failure look like a bug in the dashboard rather than a bad
+   * minute at Supabase.
+   *
+   * Degrading to signed-out is the right failure. Row-level security, not this
+   * call, is what protects the data; the worst case is that someone is sent to
+   * /login and signs in again.
+   */
+  let claimsData: Awaited<ReturnType<typeof supabase.auth.getClaims>>['data'] = null;
+  try {
+    ({ data: claimsData } = await supabase.auth.getClaims());
+  } catch (error) {
+    console.error('[auth] getClaims failed; treating request as signed out', error);
+    return null;
+  }
+
   const claims = claimsData?.claims as
     | { sub?: string; email?: string; aal?: string }
     | undefined;

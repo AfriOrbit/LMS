@@ -45,7 +45,7 @@ export function KitActions({
         >
           {pending ? 'Working…' : 'Mark returned'}
         </Button>
-        {message ? <p className="text-xs text-ion-300">{message}</p> : null}
+        {message ? <p className="text-xs text-[var(--accent)]">{message}</p> : null}
       </div>
     );
   }
@@ -88,7 +88,7 @@ export function KitActions({
       >
         {pending ? 'Working…' : 'Assign'}
       </Button>
-      {message ? <p className="text-xs text-ion-300">{message}</p> : null}
+      {message ? <p className="text-xs text-[var(--accent)]">{message}</p> : null}
     </div>
   );
 }

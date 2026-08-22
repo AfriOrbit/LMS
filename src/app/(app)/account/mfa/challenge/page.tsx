@@ -23,7 +23,7 @@ export default async function MfaChallengePage({
 
   return (
     <div className="mx-auto max-w-md">
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-8">
+      <div className="border border-[var(--border)] bg-[var(--bg-card)] p-8">
         <h1 className="text-xl font-semibold tracking-tight">Verify it is you</h1>
         <p className="mt-1.5 text-sm text-[var(--text-muted)]">
           Enter the 6-digit code from your authenticator app.

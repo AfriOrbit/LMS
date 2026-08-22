@@ -22,7 +22,7 @@ export default function ResetPasswordPage() {
   const [state, action] = useActionState(requestPasswordResetAction, INITIAL);
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-8">
+    <div className="border border-[var(--border)] bg-[var(--bg-card)] p-8">
       <h1 className="text-xl font-semibold tracking-tight">Reset your password</h1>
       <p className="mt-1.5 text-sm text-[var(--text-muted)]">
         Enter your email and we will send a link. Two-factor authentication still applies

@@ -31,8 +31,8 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
   const asText = codes.join('\n');
 
   return (
-    <Card className="border-ember-500/35 bg-ember-500/5">
-      <h2 className="text-base font-semibold text-ember-400">
+    <Card className="border-[var(--warn-line)] bg-[var(--warn-bg)]">
+      <h2 className="text-base font-semibold text-[var(--warn)]">
         Save your recovery codes now
       </h2>
       <p className="mt-1.5 text-sm text-[var(--text-muted)]">
@@ -45,7 +45,7 @@ function RecoveryCodes({ codes }: { codes: string[] }) {
         {codes.map((code) => (
           <li
             key={code}
-            className="rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 tracking-wider"
+            className="border border-[var(--border)] bg-[var(--bg)] px-3 py-2 tracking-wider"
           >
             {code}
           </li>
@@ -154,7 +154,7 @@ export function MfaEnrollment({
             {starting ? 'Working…' : 'Generate new recovery codes'}
           </Button>
           {regenState?.message && !regenState.recoveryCodes ? (
-            <p className="mt-3 text-sm text-alert-400">{regenState.message}</p>
+            <p className="mt-3 text-sm text-[var(--bad)]">{regenState.message}</p>
           ) : null}
         </Card>
 
@@ -223,10 +223,10 @@ export function MfaEnrollment({
           <li>
             <h2 className="text-sm font-semibold">2. Scan this code</h2>
             {starting || !enroll ? (
-              <div className="mt-3 h-48 w-48 animate-pulse rounded-lg bg-void-800" />
+              <div className="mt-3 h-48 w-48 animate-pulse bg-[var(--bg-hover)]" />
             ) : enroll.qrCode ? (
               <>
-                <div className="mt-3 inline-block rounded-lg bg-white p-3">
+                <div className="mt-3 inline-block bg-white p-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={enroll.qrCode}
@@ -240,13 +240,13 @@ export function MfaEnrollment({
                   <button
                     type="button"
                     onClick={() => setShowSecret((v) => !v)}
-                    className="text-ion-300 underline"
+                    className="text-[var(--accent)] underline"
                   >
                     {showSecret ? 'Hide' : 'Show'} the setup key
                   </button>
                 </p>
                 {showSecret ? (
-                  <code className="mt-2 block break-all rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-sm">
+                  <code className="mt-2 block break-all border border-[var(--border)] bg-[var(--bg)] px-3 py-2 font-mono text-sm">
                     {enroll.secret}
                   </code>
                 ) : null}

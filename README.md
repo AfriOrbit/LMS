@@ -1,6 +1,6 @@
 # AfriOrbit Learning
 
-The learning platform for [AfriOrbit Space](https://www.afriorbit.space/)'s EduSat
+The learning platform for [AfriOrbit Space](https://afriorbit-website.vercel.app)'s EduSat
 programme — CubeSat systems engineering, satellite-to-IoT link design, and flight
 software, for a technical audience.
 

@@ -12,6 +12,11 @@ import { Button, ButtonLink } from '@/components/ui/primitives';
  * Time-on-page is measured client-side and sent as a hint only — the database
  * derives course progress from completion flags, never from a client-supplied
  * percentage, so a forged value here cannot manufacture a certificate.
+ *
+ * Progress is best-effort. `lessonId` is null whenever the database has no row
+ * for this lesson (unseeded, unreachable, or the learner is reading without an
+ * enrolment); the navigation below still works, there is simply nothing to
+ * tick. A failed write logs and leaves the lesson readable.
  */
 export function LessonFooter({
   lessonId,
@@ -22,7 +27,7 @@ export function LessonFooter({
   nextSlug,
   nextTitle,
 }: {
-  lessonId: string;
+  lessonId: string | null;
   completed: boolean;
   courseSlug: string;
   previousSlug: string | null;
@@ -32,6 +37,7 @@ export function LessonFooter({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState(false);
 
   // Optimistic override of the server-supplied `completed` prop. `null` means
   // "no local opinion — trust the server".
@@ -40,10 +46,12 @@ export function LessonFooter({
   // Reset the override when the component is reused for a different lesson.
   // Setting state during render is the documented way to derive state from a
   // changed prop without an effect.
-  const [renderedLessonId, setRenderedLessonId] = useState(lessonId);
-  if (lessonId !== renderedLessonId) {
-    setRenderedLessonId(lessonId);
+  const [renderedLessonKey, setRenderedLessonKey] = useState(lessonId ?? courseSlug);
+  const lessonKey = lessonId ?? courseSlug;
+  if (lessonKey !== renderedLessonKey) {
+    setRenderedLessonKey(lessonKey);
     setOptimistic(null);
+    setFailed(false);
   }
 
   const isDone = optimistic ?? completed;
@@ -51,9 +59,11 @@ export function LessonFooter({
   const openedAt = useRef<number | null>(null);
   useEffect(() => {
     openedAt.current = Date.now();
-  }, [lessonId]);
+  }, [lessonKey]);
 
   function toggle(navigate: boolean) {
+    if (!lessonId) return;
+
     const started = openedAt.current;
     const secondsSpent = started
       ? Math.min(86_400, Math.round((Date.now() - started) / 1000))
@@ -61,16 +71,26 @@ export function LessonFooter({
     const next = navigate ? true : !isDone;
 
     startTransition(async () => {
-      const result = await setLessonProgressAction({
-        lessonId,
-        completed: next,
-        secondsSpent,
-      });
-      if (result.ok) {
-        setOptimistic(next);
-        router.refresh();
-        if (navigate && nextSlug) router.push(`/learn/${courseSlug}/${nextSlug}`);
+      try {
+        const result = await setLessonProgressAction({
+          lessonId,
+          completed: next,
+          secondsSpent,
+        });
+        if (result.ok) {
+          setFailed(false);
+          setOptimistic(next);
+          router.refresh();
+        } else {
+          setFailed(true);
+          console.warn('[lesson-footer] progress not saved:', result.message);
+        }
+      } catch (error) {
+        setFailed(true);
+        console.warn('[lesson-footer] progress not saved:', error);
       }
+
+      if (navigate && nextSlug) router.push(`/learn/${courseSlug}/${nextSlug}`);
     });
   }
 
@@ -90,19 +110,27 @@ export function LessonFooter({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant={isDone ? 'secondary' : 'success'}
-            size="sm"
-            disabled={pending}
-            onClick={() => toggle(false)}
-          >
-            {isDone ? 'Mark as not complete' : 'Mark complete'}
-          </Button>
+          {lessonId ? (
+            <Button
+              variant={isDone ? 'secondary' : 'success'}
+              size="sm"
+              disabled={pending}
+              onClick={() => toggle(false)}
+            >
+              {isDone ? 'Mark as not complete' : 'Mark complete'}
+            </Button>
+          ) : null}
 
           {nextSlug ? (
-            <Button size="sm" disabled={pending} onClick={() => toggle(true)}>
-              {pending ? 'Saving…' : `Complete and continue →`}
-            </Button>
+            lessonId ? (
+              <Button size="sm" disabled={pending} onClick={() => toggle(true)}>
+                {pending ? 'Saving…' : 'Complete and continue →'}
+              </Button>
+            ) : (
+              <ButtonLink href={`/learn/${courseSlug}/${nextSlug}`} size="sm">
+                Next lesson →
+              </ButtonLink>
+            )
           ) : (
             <ButtonLink href={`/learn/${courseSlug}`} size="sm">
               Back to course
@@ -110,6 +138,12 @@ export function LessonFooter({
           )}
         </div>
       </div>
+
+      {failed ? (
+        <p className="mt-3 text-right text-xs text-[var(--warn)]">
+          Progress could not be saved just now. The lesson is unaffected.
+        </p>
+      ) : null}
 
       {nextTitle ? (
         <p className="mt-3 text-right text-xs text-[var(--text-muted)]">Next: {nextTitle}</p>

@@ -1916,3 +1916,250 @@ print(f"  {n_quizzes} quizzes, {n_questions} questions")
 print(f"  sandboxes referenced: {', '.join(sims)}")
 words = sum(len(l['body'].split()) for c in COURSES for m in c['modules'] for l in m['lessons'])
 print(f"  ~{words:,} words of lesson content")
+
+# ---------------------------------------------------------------------------
+# ALSO EMIT: src/content/curriculum.ts
+# ---------------------------------------------------------------------------
+# The same curriculum as a typed TypeScript module, so the platform can render
+# the catalogue, a course and a lesson with NO database at all.
+#
+# This exists because content-in-a-database made deployment a two-step process:
+# push the code, then remember to run a migration. Forgetting the second step
+# produced a site that worked perfectly and showed an empty catalogue, which is
+# an indistinguishable-from-broken experience.
+#
+# Content now lives in the repo, where `git push` is the whole deployment. The
+# database keeps doing what a database is for — accounts, enrolment, progress,
+# quiz attempts — and the SQL seed remains available so those tables can
+# reference real course rows when they are wanted.
+
+import json as _json
+
+# OUT is <repo>/supabase/migrations/0011_*.sql, so the repo root is three up.
+TS_OUT = OUT.parent.parent.parent / 'src' / 'content' / 'curriculum.ts'
+TS_OUT.parent.mkdir(parents=True, exist_ok=True)
+
+def ts(v):
+    return _json.dumps(v, ensure_ascii=False)
+
+ts_lines = []
+tw = ts_lines.append
+
+tw("""/* eslint-disable */
+/**
+ * curriculum.ts — AfriOrbit's real curriculum, as data.
+ *
+ * GENERATED. Edit scripts/build-curriculum.py and re-run:
+ *     python3 scripts/build-curriculum.py
+ *
+ * Sourced from AfriOrbit's own material:
+ *   - Introduction to CubeSat Development, KSA Training 2022 (590 pages)
+ *   - SDR-IOT-project: ESP32-S3 / SX1278 edge device, firmware and BOM
+ *   - Morgan-State-Rocketry-Program: the twelve-sketch avionics progression
+ *
+ * WHY CONTENT LIVES IN THE REPO
+ * Putting lesson bodies in Postgres made deploying a two-step operation, and
+ * skipping the second step produced a working site with an empty catalogue —
+ * which looks exactly like a broken one. Reading the curriculum from here means
+ * a deploy is sufficient: the catalogue, every lesson and every simulator
+ * render with no database connection at all.
+ *
+ * The database is still the right home for per-learner state — enrolment,
+ * progress, quiz attempts, certificates — and the matching SQL seed
+ * (supabase/migrations/0011) stays in sync from this same source.
+ */
+
+export type LessonKind = 'reading' | 'simulation' | 'quiz' | 'lab' | 'video';
+export type CourseLevel = 'foundation' | 'intermediate' | 'advanced';
+
+export interface Lesson {
+  slug: string;
+  title: string;
+  kind: LessonKind;
+  minutes: number;
+  /** Markdown body. Rendered without raw HTML. */
+  body: string;
+  /** For kind 'simulation': which sandbox to mount. */
+  simulationKey: string | null;
+  isPreview: boolean;
+}
+
+export interface Module {
+  slug: string;
+  title: string;
+  summary: string;
+  lessons: Lesson[];
+}
+
+export interface QuizQuestion {
+  kind: 'single_choice' | 'multi_choice' | 'numeric' | 'short_text' | 'true_false';
+  prompt: string;
+  options: { id: string; text: string }[];
+  answerKey: Record<string, unknown>;
+  explanation: string;
+  points: number;
+}
+
+export interface Quiz {
+  slug: string;
+  title: string;
+  instructions: string;
+  questions: QuizQuestion[];
+}
+
+export interface Course {
+  slug: string;
+  trackSlug: string;
+  title: string;
+  subtitle: string;
+  summary: string;
+  level: CourseLevel;
+  minutes: number;
+  tags: string[];
+  prerequisites: string[];
+  outcomes: string[];
+  requiresHardware: boolean;
+  hardwareNotes: string | null;
+  /** The AfriOrbit document this course is drawn from. */
+  source: string;
+  modules: Module[];
+  quiz: Quiz | null;
+}
+
+export interface Track {
+  slug: string;
+  title: string;
+  summary: string;
+  description: string;
+  level: CourseLevel;
+  courses: Course[];
+}
+""")
+
+# ---- data -----------------------------------------------------------------
+tw("export const TRACKS: Track[] = [")
+for t in TRACKS:
+    tw("  {")
+    tw(f"    slug: {ts(t['slug'])},")
+    tw(f"    title: {ts(t['title'])},")
+    tw(f"    summary: {ts(t['summary'])},")
+    tw(f"    description: {ts(t['description'])},")
+    tw(f"    level: {ts(t['level'])},")
+    tw("    courses: [")
+    for c in [c for c in COURSES if c['track'] == t['slug']]:
+        tw("      {")
+        tw(f"        slug: {ts(c['slug'])},")
+        tw(f"        trackSlug: {ts(t['slug'])},")
+        tw(f"        title: {ts(c['title'])},")
+        tw(f"        subtitle: {ts(c['subtitle'])},")
+        tw(f"        summary: {ts(c['summary'])},")
+        tw(f"        level: {ts(c['level'])},")
+        tw(f"        minutes: {c['minutes']},")
+        tw(f"        tags: {ts(c.get('tags', []))},")
+        tw(f"        prerequisites: {ts(c.get('prerequisites', []))},")
+        tw(f"        outcomes: {ts(c.get('outcomes', []))},")
+        tw(f"        requiresHardware: {'true' if c.get('requires_hardware') else 'false'},")
+        tw(f"        hardwareNotes: {ts(c.get('hardware_notes')) if c.get('hardware_notes') else 'null'},")
+        tw(f"        source: {ts(c['source'])},")
+        tw("        modules: [")
+        for m in c['modules']:
+            tw("          {")
+            tw(f"            slug: {ts(m['slug'])},")
+            tw(f"            title: {ts(m['title'])},")
+            tw(f"            summary: {ts(m['summary'])},")
+            tw("            lessons: [")
+            for les in m['lessons']:
+                tw("              {")
+                tw(f"                slug: {ts(les['slug'])},")
+                tw(f"                title: {ts(les['title'])},")
+                tw(f"                kind: {ts(les['kind'])},")
+                tw(f"                minutes: {les['minutes']},")
+                tw(f"                simulationKey: {ts(les['sim']) if les['sim'] else 'null'},")
+                tw(f"                isPreview: {'true' if les['preview'] else 'false'},")
+                tw(f"                body: {ts(les['body'])},")
+                tw("              },")
+            tw("            ],")
+            tw("          },")
+        tw("        ],")
+        if c.get('quiz'):
+            qz = c['quiz']
+            tw("        quiz: {")
+            tw(f"          slug: {ts(qz['slug'])},")
+            tw(f"          title: {ts(qz['title'])},")
+            tw(f"          instructions: {ts(qz['instructions'])},")
+            tw("          questions: [")
+            for qq in qz['questions']:
+                tw("            {")
+                tw(f"              kind: {ts(qq['kind'])},")
+                tw(f"              prompt: {ts(qq['prompt'])},")
+                tw(f"              options: {ts(qq['options'])},")
+                tw(f"              answerKey: {ts(qq['key'])},")
+                tw(f"              explanation: {ts(qq['explanation'])},")
+                tw(f"              points: {qq['points']},")
+                tw("            },")
+            tw("          ],")
+            tw("        },")
+        else:
+            tw("        quiz: null,")
+        tw("      },")
+    tw("    ],")
+    tw("  },")
+tw("];")
+tw("")
+tw("""
+/* --------------------------------------------------------------------------
+   Lookups
+   -------------------------------------------------------------------------- */
+
+export const COURSES: Course[] = TRACKS.flatMap((t) => t.courses);
+
+export function getTrack(slug: string): Track | undefined {
+  return TRACKS.find((t) => t.slug === slug);
+}
+
+export function getCourse(slug: string): Course | undefined {
+  return COURSES.find((c) => c.slug === slug);
+}
+
+export function getLesson(
+  courseSlug: string,
+  lessonSlug: string,
+): { course: Course; module: Module; lesson: Lesson } | undefined {
+  const course = getCourse(courseSlug);
+  if (!course) return undefined;
+  for (const module of course.modules) {
+    const lesson = module.lessons.find((l) => l.slug === lessonSlug);
+    if (lesson) return { course, module, lesson };
+  }
+  return undefined;
+}
+
+/** Flat lesson order for a course, used for previous/next navigation. */
+export function courseLessons(course: Course): { module: Module; lesson: Lesson }[] {
+  return course.modules.flatMap((module) => module.lessons.map((lesson) => ({ module, lesson })));
+}
+
+export function lessonCount(course: Course): number {
+  return course.modules.reduce((n, m) => n + m.lessons.length, 0);
+}
+
+export function simulatorCount(course: Course): number {
+  return course.modules.reduce(
+    (n, m) => n + m.lessons.filter((l) => l.simulationKey).length,
+    0,
+  );
+}
+
+/** Every simulator key the curriculum references, for registry checks. */
+export const REFERENCED_SIMULATORS: string[] = Array.from(
+  new Set(
+    COURSES.flatMap((c) =>
+      c.modules.flatMap((m) => m.lessons.map((l) => l.simulationKey).filter(Boolean)),
+    ),
+  ),
+) as string[];
+""")
+
+_ts_src = "\n".join(ts_lines)
+TS_OUT.write_text(_ts_src, encoding='utf-8')
+print("wrote " + 'src/content/curriculum.ts' + "  (" + str(len(_ts_src) // 1024) + " KB)")

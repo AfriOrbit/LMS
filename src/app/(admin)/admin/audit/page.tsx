@@ -39,11 +39,11 @@ export default async function AuditPage({
           name="action"
           defaultValue={action ?? ''}
           placeholder="Filter by action prefix, e.g. auth.mfa"
-          className="min-w-64 flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm"
+          className="min-w-64 flex-1 border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm"
         />
         <button
           type="submit"
-          className="rounded-lg bg-ion-600 px-4 py-2 text-sm font-medium text-white hover:bg-ion-500"
+          className="bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-hover)]"
         >
           Filter
         </button>
@@ -78,7 +78,7 @@ export default async function AuditPage({
                         {entry.actor_email ?? 'system'}
                       </td>
                       <td className="px-4 py-2.5">
-                        <code className="font-mono text-xs text-ion-300">
+                        <code className="font-mono text-xs text-[var(--accent)]">
                           {entry.action}
                         </code>
                       </td>
@@ -106,7 +106,7 @@ export default async function AuditPage({
             {pageNumber > 1 ? (
               <a
                 href={`/admin/audit?page=${pageNumber - 1}${action ? `&action=${action}` : ''}`}
-                className="text-ion-300 hover:underline"
+                className="text-[var(--accent)] hover:underline"
               >
                 ← Newer
               </a>
@@ -116,7 +116,7 @@ export default async function AuditPage({
             {(entries ?? []).length === PAGE_SIZE ? (
               <a
                 href={`/admin/audit?page=${pageNumber + 1}${action ? `&action=${action}` : ''}`}
-                className="text-ion-300 hover:underline"
+                className="text-[var(--accent)] hover:underline"
               >
                 Older →
               </a>

@@ -41,7 +41,7 @@ export function UserRow({ profile }: { profile: Profile }) {
         <p className="mt-0.5 text-xs text-[var(--text-muted)]">
           Joined {formatDate(profile.created_at)}
         </p>
-        {message ? <p className="mt-1 text-xs text-ion-300">{message}</p> : null}
+        {message ? <p className="mt-1 text-xs text-[var(--accent)]">{message}</p> : null}
       </td>
 
       <td className="px-4 py-3 text-xs text-[var(--text-muted)]">

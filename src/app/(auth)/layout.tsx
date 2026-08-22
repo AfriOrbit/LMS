@@ -4,7 +4,7 @@ import { Logo } from '@/components/site-nav';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="starfield flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col">
       <header className="border-b border-[var(--border)] bg-[var(--bg)]/70 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Logo />

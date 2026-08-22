@@ -96,7 +96,7 @@ export default async function AdminKitsPage() {
                       className="border-b border-[var(--border)] align-top last:border-0"
                     >
                       <td className="px-4 py-3">
-                        <p className="font-mono font-medium text-ion-300">
+                        <p className="font-mono font-medium text-[var(--accent)]">
                           {kit.asset_tag}
                         </p>
                         <p className="text-xs text-[var(--text-muted)]">

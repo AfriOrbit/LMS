@@ -114,8 +114,8 @@ export function GradingCard({
           <div
             className={
               expanded
-                ? 'rounded-lg border border-[var(--border)] p-4'
-                : 'max-h-64 overflow-hidden rounded-lg border border-[var(--border)] p-4'
+                ? 'border border-[var(--border)] p-4'
+                : 'max-h-64 overflow-hidden border border-[var(--border)] p-4'
             }
           >
             <Markdown variant="compact">
@@ -125,7 +125,7 @@ export function GradingCard({
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="mt-2 text-xs text-ion-300 hover:underline"
+            className="mt-2 text-xs text-[var(--accent)] hover:underline"
           >
             {expanded ? 'Collapse' : 'Expand full narrative'}
           </button>
@@ -185,7 +185,7 @@ export function GradingCard({
             ))}
           </div>
 
-          <div className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4">
+          <div className="mt-5 border border-[var(--border)] bg-[var(--bg)] p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-[var(--text-muted)]">Weighted total</span>
               <span className="font-mono text-lg tabular-nums">

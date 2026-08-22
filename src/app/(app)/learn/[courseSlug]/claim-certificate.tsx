@@ -12,8 +12,8 @@ export function ClaimCertificate({ courseId }: { courseId: string }) {
 
   if (code) {
     return (
-      <Card className="border-signal-500/35 bg-signal-500/5">
-        <h2 className="text-base font-semibold text-signal-400">Certificate issued</h2>
+      <Card className="border-[var(--good-line)] bg-[var(--good-bg)]">
+        <h2 className="text-base font-semibold text-[var(--good)]">Certificate issued</h2>
         <p className="mt-1.5 text-sm text-[var(--text-muted)]">
           Verification code <span className="font-mono text-[var(--text)]">{code}</span> —
           anyone can confirm it at /verify without an account.
@@ -31,10 +31,10 @@ export function ClaimCertificate({ courseId }: { courseId: string }) {
   }
 
   return (
-    <Card className="border-signal-500/35 bg-signal-500/5">
+    <Card className="border-[var(--good-line)] bg-[var(--good-bg)]">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-signal-400">Course complete</h2>
+          <h2 className="text-base font-semibold text-[var(--good)]">Course complete</h2>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
             Every lesson is done and every graded assessment is passed.
           </p>

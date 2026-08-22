@@ -61,12 +61,12 @@ function Term({
       <span className="text-sm text-[var(--text-muted)]">{label}</span>
       <span
         className={`font-mono text-sm tabular-nums ${
-          emphasis === 'good'
-            ? 'text-signal-400'
-            : emphasis === 'bad'
-              ? 'text-alert-400'
-              : ''
-        }`}
+ emphasis === 'good'
+ ? 'text-[var(--good)]'
+ : emphasis === 'bad'
+ ? 'text-[var(--bad)]'
+ : ''
+ }`}
       >
         {value >= 0 && emphasis ? '+' : ''}
         {value.toFixed(2)} {unit}
@@ -298,13 +298,13 @@ export function LinkBudgetSandbox() {
 
         <aside className="space-y-5">
           <div
-            className={`rounded-xl border p-5 ${
-              margin >= 6
-                ? 'border-signal-500/40 bg-signal-500/6'
-                : margin >= 3
-                  ? 'border-ember-500/40 bg-ember-500/6'
-                  : 'border-alert-500/40 bg-alert-500/6'
-            }`}
+            className={` border p-5 ${
+ margin >= 6
+ ? 'border-[var(--good-line)] bg-[var(--good-bg)]'
+ : margin >= 3
+ ? 'border-[var(--warn-line)] bg-[var(--warn-bg)]'
+ : 'border-[var(--bad-line)] bg-[var(--bad-bg)]'
+ }`}
           >
             <p className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
               {isSensitivityLink ? 'Margin over sensitivity' : 'Link margin'}

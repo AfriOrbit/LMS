@@ -59,3 +59,24 @@ export function safeRedirectPath(value: string | null | undefined, fallback = '/
   if (value.includes('\\')) return fallback;
   return value;
 }
+
+/**
+ * Group a number with thousands separators, deterministically.
+ *
+ * `Number.prototype.toLocaleString` looks like the obvious tool and is a
+ * hydration hazard: Node may be built with a reduced ICU dataset while the
+ * browser always has the full one, so the same call can produce a normal space
+ * on the server and a narrow no-break space in the client. React then reports
+ * a text-content mismatch (error #418) and discards the server HTML for that
+ * subtree.
+ *
+ * This does the grouping arithmetically, so server and client cannot disagree.
+ */
+export function groupNumber(value: number, decimals = 0): string {
+  if (!Number.isFinite(value)) return '—';
+  const fixed = Math.abs(value).toFixed(decimals);
+  const [whole, fraction] = fixed.split('.');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const sign = value < 0 ? '-' : '';
+  return fraction ? `${sign}${grouped}.${fraction}` : `${sign}${grouped}`;
+}

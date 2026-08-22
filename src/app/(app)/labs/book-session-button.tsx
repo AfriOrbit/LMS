@@ -28,7 +28,7 @@ export function BookSessionButton({
             href={meetingUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-ion-300 hover:underline"
+            className="text-xs text-[var(--accent)] hover:underline"
           >
             Join link
           </a>
@@ -52,7 +52,7 @@ export function BookSessionButton({
       >
         {pending ? 'Booking…' : 'Book a seat'}
       </Button>
-      {error ? <p className="text-xs text-alert-400">{error}</p> : null}
+      {error ? <p className="text-xs text-[var(--bad)]">{error}</p> : null}
     </div>
   );
 }

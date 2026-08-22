@@ -74,7 +74,7 @@ export default async function AdminCoursesPage() {
                     <td className="px-4 py-3">
                       <Link
                         href={`/catalog/${course.slug}`}
-                        className="font-medium hover:text-ion-300"
+                        className="font-medium hover:text-[var(--accent)]"
                       >
                         {course.title}
                       </Link>

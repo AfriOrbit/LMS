@@ -26,7 +26,7 @@ export function QuizIntro({
       <h2 className="text-base font-semibold">Before you start</h2>
       <ul className="mt-3 space-y-2 text-sm text-[var(--text-muted)]">
         <li className="flex gap-2">
-          <span className="text-ion-400">›</span>
+          <span className="text-[var(--accent)]">›</span>
           <span>
             This is attempt {attemptsUsed + 1} of {maxAttempts}. Starting it uses one
             attempt whether or not you submit.
@@ -34,7 +34,7 @@ export function QuizIntro({
         </li>
         {timeLimitMinutes ? (
           <li className="flex gap-2">
-            <span className="text-ion-400">›</span>
+            <span className="text-[var(--accent)]">›</span>
             <span>
               The clock is {timeLimitMinutes} minutes and runs on the server. Closing the
               tab does not pause it.
@@ -42,14 +42,14 @@ export function QuizIntro({
           </li>
         ) : null}
         <li className="flex gap-2">
-          <span className="text-ion-400">›</span>
+          <span className="text-[var(--accent)]">›</span>
           <span>
             Answers are graded in the database. Nothing on this page reveals a correct
             answer before you submit.
           </span>
         </li>
         <li className="flex gap-2">
-          <span className="text-ion-400">›</span>
+          <span className="text-[var(--accent)]">›</span>
           <span>Questions and options are shuffled per attempt.</span>
         </li>
       </ul>

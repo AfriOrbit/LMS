@@ -31,7 +31,7 @@ export default async function AccountPage() {
               <Badge tone={profile.mfa_enabled ? 'success' : 'danger'}>
                 {profile.mfa_enabled ? 'Enabled' : 'Not enabled'}
               </Badge>
-              <Link href="/account/mfa" className="text-ion-300 hover:underline">
+              <Link href="/account/mfa" className="text-[var(--accent)] hover:underline">
                 Manage
               </Link>
             </dd>
@@ -40,7 +40,16 @@ export default async function AccountPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <dt className="text-[var(--text-muted)]">Recovery codes remaining</dt>
             <dd>
-              {profile.mfa_enabled ? profile.recovery_codes.length : '—'}
+              {/*
+                * Optional chained deliberately. The column is `text[] not null
+                * default '{}'`, so on a fully-migrated database this can never
+                * be null — but a profile row inserted by hand, or by an older
+                * migration, or selected through a view that omits the column,
+                * makes this `undefined`, and `.length` on it throws. A thrown
+                * Server Component is a blank "Internal Server Error" for the
+                * account page, which is a lot of damage for a count.
+                */}
+              {profile.mfa_enabled ? (profile.recovery_codes?.length ?? 0) : '—'}
               {profile.recovery_codes_generated_at
                 ? ` · issued ${formatDate(profile.recovery_codes_generated_at)}`
                 : ''}

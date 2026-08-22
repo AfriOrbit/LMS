@@ -39,21 +39,28 @@ export default async function HomePage() {
       <SiteNav />
 
       <main id="main">
-        <section className="starfield relative overflow-hidden border-b border-[var(--border)]">
-          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
-            <Badge tone="info" className="mb-5">
-              EduSat programme · satellite-to-IoT
-            </Badge>
-            <h1 className="max-w-3xl text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-              Train engineers to build, fly and operate{' '}
-              <span className="bg-gradient-to-r from-ion-300 to-ember-400 bg-clip-text text-transparent">
-                real small satellites
-              </span>
+        <section className="relative border-b border-[var(--border)]">
+          <div className="mx-auto max-w-7xl px-4 pb-16 pt-20 sm:px-6 sm:pt-28">
+            {/*
+              A plain monospace eyebrow, not a tinted pill. The pill read as a
+              "new!" badge; this reads as an instrument label, which is what it
+              is — and it matches the eyebrow on every page of the company site.
+            */}
+            <p className="t-label">EduSat programme · satellite-to-IoT</p>
+
+            {/*
+              No gradient. "real small satellites" was set in a blue-to-amber
+              clip-path gradient, which is the one decorative flourish this
+              design language does not have — and it made three words of a
+              headline the lowest-contrast text on the page.
+            */}
+            <h1 className="t-display mt-7 max-w-[16ch]">
+              Train engineers to build, fly and operate real small satellites.
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--text-muted)]">
-              AfriOrbit&rsquo;s learning platform for the EduSat CubeSat and IoT edge
-              device. Structured tracks, hands-on labs on flight-representative hardware,
-              and assessment rigorous enough that the certificate means something.
+            <p className="t-lead mt-7 max-w-[58ch]">
+              AfriOrbit&rsquo;s learning platform for the EduSat CubeSat and IoT edge device.
+              Structured tracks, hands-on labs on flight-representative hardware, and assessment
+              rigorous enough that the certificate means something.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <ButtonLink href="/catalog" size="lg">
@@ -64,16 +71,29 @@ export default async function HomePage() {
               </ButtonLink>
             </div>
 
-            <dl className="mt-16 grid grid-cols-2 gap-6 border-t border-[var(--border)] pt-8 sm:grid-cols-4">
+            {/*
+              Divided by vertical hairlines rather than gaps, so the row reads
+              as one instrument panel instead of four floating numbers. Label
+              above value: the label is what makes the number mean anything.
+            */}
+            <dl className="mt-16 grid grid-cols-2 border-t border-[var(--border)] lg:grid-cols-4">
               {[
-                ['3', 'courses in the EduSat track'],
-                ['30+', 'hours of assessed material'],
-                ['1U', 'flight-representative platform'],
-                ['2FA', 'on every account'],
-              ].map(([value, label]) => (
-                <div key={label}>
-                  <dt className="text-2xl font-semibold text-ion-300">{value}</dt>
-                  <dd className="mt-1 text-sm text-[var(--text-muted)]">{label}</dd>
+                ['3', 'Courses', 'in the EduSat track'],
+                ['30+', 'Hours', 'of assessed material'],
+                ['1U', 'Platform', 'flight-representative'],
+                ['2FA', 'Security', 'on every account'],
+              ].map(([value, label, hint], i) => (
+                <div
+                  key={label}
+                  className={[
+                    'border-b border-[var(--border)] py-7 sm:px-6 sm:first:pl-0',
+                    i % 2 === 1 ? 'border-l pl-5 sm:pl-6' : '',
+                    'lg:border-l lg:pl-6 lg:first:border-l-0 lg:first:pl-0',
+                  ].join(' ')}
+                >
+                  <dt className="t-label">{label}</dt>
+                  <dd className="t-stat mt-3">{value}</dd>
+                  <dd className="mt-2 text-[0.8125rem] text-[var(--text-faint)]">{hint}</dd>
                 </div>
               ))}
             </dl>
@@ -84,7 +104,7 @@ export default async function HomePage() {
           <div className="grid gap-6 md:grid-cols-3">
             {PILLARS.map((pillar) => (
               <Card key={pillar.title}>
-                <h2 className="text-base font-semibold">{pillar.title}</h2>
+                <h2 className="t-h3">{pillar.title}</h2>
                 <p className="mt-2.5 text-sm leading-relaxed text-[var(--text-muted)]">
                   {pillar.body}
                 </p>
@@ -96,12 +116,15 @@ export default async function HomePage() {
         <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight">The EduSat track</h2>
+              <h2 className="t-h2">The EduSat track</h2>
               <p className="mt-1.5 text-sm text-[var(--text-muted)]">
                 Take them in order, or jump to the one that matches your gap.
               </p>
             </div>
-            <Link href="/catalog" className="shrink-0 text-sm text-ion-300 hover:underline">
+            <Link
+              href="/catalog"
+              className="shrink-0 border-b border-[var(--border-strong)] pb-0.5 text-sm font-medium text-[var(--text)] transition-colors hover:border-[var(--text)]"
+            >
               All courses →
             </Link>
           </div>
@@ -119,7 +142,7 @@ export default async function HomePage() {
                   {course.requires_hardware ? <Badge tone="neutral">Hardware</Badge> : null}
                 </div>
                 <h3 className="text-base font-semibold leading-snug">
-                  <Link href={`/catalog/${course.slug}`} className="hover:text-ion-300">
+                  <Link href={`/catalog/${course.slug}`} className="hover:text-[var(--accent)]">
                     {course.title}
                   </Link>
                 </h3>

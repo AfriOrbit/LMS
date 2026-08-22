@@ -8,6 +8,7 @@ import {
   LORA_PROFILES,
 } from '@/lib/edusat/link-budget';
 import { Alert, Badge, Button, Card, Field, Input, Select, Stat } from '@/components/ui/primitives';
+import { groupNumber } from '@/lib/utils';
 
 const BANDWIDTHS = [125, 250, 500] as const;
 const SPREADING_FACTORS = [7, 8, 9, 10, 11, 12] as const;
@@ -50,8 +51,8 @@ function Term({
         <span className="text-sm text-[var(--text-muted)]">{label}</span>
         <span
           className={`font-mono text-sm tabular-nums ${
-            emphasis === 'good' ? 'text-signal-400' : emphasis === 'bad' ? 'text-alert-400' : ''
-          }`}
+ emphasis === 'good' ? 'text-[var(--good)]' : emphasis === 'bad' ? 'text-[var(--bad)]' : ''
+ }`}
         >
           {value}
         </span>
@@ -315,12 +316,12 @@ export function LoraAirtimeSandbox() {
                       <tr
                         key={row.sf}
                         className={`border-t border-[var(--border)] ${
-                          active ? 'bg-ion-500/8' : ''
-                        }`}
+ active ? 'bg-[var(--accent-bg)]' : ''
+ }`}
                       >
                         <td className="py-1.5 pr-3 font-mono text-xs">
                           SF{row.sf}
-                          {active ? <span className="ml-2 text-ion-400">◂</span> : null}
+                          {active ? <span className="ml-2 text-[var(--accent)]">◂</span> : null}
                         </td>
                         <td className="py-1.5 pr-3 font-mono text-xs tabular-nums">
                           {seconds(row.symbolS)}
@@ -377,7 +378,7 @@ export function LoraAirtimeSandbox() {
             />
             <Term
               label="Chip rate"
-              value={`${(bandwidthKhz * 1000).toLocaleString('en-GB')} chip/s`}
+              value={`${groupNumber(bandwidthKhz * 1000)} chip/s`}
             />
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge tone={lowDataRateOptimise ? 'warning' : 'neutral'}>
@@ -424,7 +425,7 @@ export function LoraAirtimeSandbox() {
             />
             <Term
               label="Bytes per hour"
-              value={`${Math.floor(messagesPerHour * payloadBytes).toLocaleString('en-GB')} B`}
+              value={`${groupNumber(Math.floor(messagesPerHour * payloadBytes))} B`}
             />
           </Card>
 

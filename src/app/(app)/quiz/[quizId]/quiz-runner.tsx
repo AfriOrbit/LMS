@@ -45,11 +45,11 @@ function Timer({ expiresAt, onExpire }: { expiresAt: string; onExpire: () => voi
 
   return (
     <div
-      className={`sticky top-16 z-20 mb-6 rounded-lg border px-4 py-2.5 text-sm ${
-        critical
-          ? 'border-alert-500/40 bg-alert-500/10 text-alert-400'
-          : 'border-[var(--border)] bg-[var(--bg-card)]'
-      }`}
+      className={`sticky top-16 z-20 mb-6 border px-4 py-2.5 text-sm ${
+ critical
+ ? 'border-[var(--bad-line)] bg-[var(--bad-bg)] text-[var(--bad)]'
+ : 'border-[var(--border)] bg-[var(--bg-card)]'
+ }`}
       role="timer"
       aria-live={critical ? 'assertive' : 'off'}
     >
@@ -148,11 +148,11 @@ export function QuizRunner({
                   options.map((option) => (
                     <label
                       key={option.id}
-                      className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-2.5 text-sm transition-colors ${
-                        value === option.id
-                          ? 'border-ion-500 bg-ion-500/8'
-                          : 'border-[var(--border)] hover:border-[var(--color-void-500)]'
-                      }`}
+                      className={`flex cursor-pointer items-start gap-3 border px-3.5 py-2.5 text-sm transition-colors ${
+ value === option.id
+ ? 'border-[var(--accent)] bg-[var(--accent-bg)]'
+ : 'border-[var(--border)] hover:border-[var(--color-void-500)]'
+ }`}
                     >
                       <input
                         type="radio"
@@ -176,11 +176,11 @@ export function QuizRunner({
                       return (
                         <label
                           key={option.id}
-                          className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3.5 py-2.5 text-sm transition-colors ${
-                            checked
-                              ? 'border-ion-500 bg-ion-500/8'
-                              : 'border-[var(--border)] hover:border-[var(--color-void-500)]'
-                          }`}
+                          className={`flex cursor-pointer items-start gap-3 border px-3.5 py-2.5 text-sm transition-colors ${
+ checked
+ ? 'border-[var(--accent)] bg-[var(--accent-bg)]'
+ : 'border-[var(--border)] hover:border-[var(--color-void-500)]'
+ }`}
                         >
                           <input
                             type="checkbox"

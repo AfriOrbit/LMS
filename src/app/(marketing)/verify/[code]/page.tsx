@@ -103,8 +103,8 @@ export default async function VerifyResultPage({
       <Card
         className={
           valid
-            ? 'border-signal-500/40 bg-signal-500/5'
-            : 'border-alert-500/40 bg-alert-500/5'
+            ? 'border-[var(--good-line)] bg-[var(--good-bg)]'
+            : 'border-[var(--bad-line)] bg-[var(--bad-bg)]'
         }
       >
         <div className="flex items-start justify-between gap-4">
@@ -114,8 +114,8 @@ export default async function VerifyResultPage({
             </p>
             <p
               className={`mt-1 text-2xl font-semibold ${
-                valid ? 'text-signal-400' : 'text-alert-400'
-              }`}
+ valid ? 'text-[var(--good)]' : 'text-[var(--bad)]'
+ }`}
             >
               {valid ? 'Genuine and current' : expired ? 'Expired' : 'Revoked'}
             </p>
@@ -161,7 +161,7 @@ export default async function VerifyResultPage({
         </ButtonLink>
         <Link
           href="/catalog"
-          className="inline-flex h-10 items-center text-sm text-ion-300 hover:underline"
+          className="inline-flex h-10 items-center text-sm text-[var(--accent)] hover:underline"
         >
           See the courses behind this certificate →
         </Link>

@@ -43,7 +43,7 @@ export default async function AdminUsersPage({
         <select
           name="status"
           defaultValue={status ?? ''}
-          className="rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm"
+          className="border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm"
         >
           <option value="">All statuses</option>
           <option value="pending">Pending</option>
@@ -55,11 +55,11 @@ export default async function AdminUsersPage({
           name="q"
           defaultValue={q ?? ''}
           placeholder="Search name or email"
-          className="min-w-56 flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm"
+          className="min-w-56 flex-1 border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm"
         />
         <button
           type="submit"
-          className="rounded-lg bg-ion-600 px-4 py-2 text-sm font-medium text-white hover:bg-ion-500"
+          className="bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-hover)]"
         >
           Filter
         </button>

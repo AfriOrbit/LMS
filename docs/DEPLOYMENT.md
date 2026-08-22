@@ -3,17 +3,28 @@
 Target topology:
 
 ```
-afriorbit.space              Squarespace (existing marketing site)
-  └── /training              embeds public/embed.js  →  iframe
-learn.afriorbit.space        Vercel  →  this application
+afriorbit.space              Vercel  →  the afriorbit-web repository
+  └── /training              may embed public/embed.js  →  iframe
+develop.afriorbit.space      Vercel  →  THIS application
   └── Supabase               Postgres + Auth + Storage
 ```
 
-The LMS runs on its own subdomain rather than inside the marketing site. That is
-a security decision as much as a practical one: two-factor flows, session
-cookies and file uploads all behave badly in a third-party iframe, and Safari's
+Two Vercel projects, two repositories, one product. They are joined by
+cross-links only: **AfriOrbit Learning Hub** points here from the company site,
+**AfriOrbit Home** points back from here.
+
+The LMS runs on its own hostname rather than inside the company site. That is a
+security decision as much as a practical one: two-factor flows, session cookies
+and file uploads all behave badly in a third-party iframe, and Safari's
 third-party cookie handling would break sign-in outright. The embed widget gives
 you the catalogue on afriorbit.space; clicking through lands on the real app.
+
+**Do not attach afriorbit.space to this project.** It belongs to the website
+deployment. This repository used to carry a vendored copy of the marketing site
+served from a `/www` route group on the apex hostname; that copy has been
+deleted, because it was a second source of truth for the same nine pages and
+because pointing the apex here would have served the old design while the
+current one sat unreachable on the other deployment.
 
 ---
 
@@ -140,7 +151,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY  <anon key>
 SUPABASE_SERVICE_ROLE_KEY      <service role key>
 NEXT_PUBLIC_SITE_URL           https://learn.afriorbit.space
 NEXT_PUBLIC_BRAND_NAME         AfriOrbit Space
-NEXT_PUBLIC_SUPPORT_EMAIL      learn@afriorbit.space
+NEXT_PUBLIC_SUPPORT_EMAIL      info@afriorbit.space
 IP_HASH_SALT                   <openssl rand -hex 32>
 MFA_POLICY                     all
 REGISTRATION_MODE              approval

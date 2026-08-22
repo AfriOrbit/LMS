@@ -26,7 +26,7 @@ export default async function MfaSetupPage({
   return (
     <div className="mx-auto max-w-2xl">
       <header className="mb-8">
-        <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-ion-400">
+        <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
           Account security
         </p>
         <h1 className="text-2xl font-semibold tracking-tight">

@@ -536,49 +536,100 @@ create policy announcements_staff_write on public.announcements
 
 -- ---------------------------------------------------------------------------
 -- Storage buckets and their policies
+--
+-- FAULT-TOLERANT ON PURPOSE, and the reason matters.
+--
+-- `storage.objects` is owned by `supabase_storage_admin`, not by the role the
+-- SQL editor runs as. On some projects the editor role has been granted enough
+-- to add policies to it and on others it has not, and there is no way to tell
+-- from the dashboard which kind of project you have. When it has not, a bare
+--
+--     create policy course_media_read on storage.objects ...
+--
+-- fails with `must be owner of table objects` — and because this file is
+-- applied as one script, that single error aborts everything after it. The
+-- curriculum, the JWT hook and the commerce catalogue never run, over a
+-- feature (file uploads) that is not on the critical path for signing in.
+--
+-- So each statement carries its own handler. A project that permits these gets
+-- them; one that does not gets a WARNING naming the exact policy to add through
+-- Storage → Policies, and the rest of the schema installs normally.
 -- ---------------------------------------------------------------------------
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values
-  ('course-media', 'course-media', true,  52428800,
-   array['image/png','image/jpeg','image/webp','image/svg+xml','application/pdf','video/mp4']),
-  ('lab-uploads',  'lab-uploads',  false, 26214400,
-   array['image/png','image/jpeg','application/pdf','text/csv','text/plain',
-         'application/zip','application/octet-stream']),
-  ('avatars',      'avatars',      true,  2097152,
-   array['image/png','image/jpeg','image/webp'])
-on conflict (id) do nothing;
+do $$
+begin
+  if to_regclass('storage.buckets') is null then
+    raise warning 'storage.buckets is absent — skipping bucket creation. Normal outside Supabase.';
+    return;
+  end if;
 
-drop policy if exists course_media_read on storage.objects;
-create policy course_media_read on storage.objects
-  for select to anon, authenticated
-  using (bucket_id = 'course-media');
+  insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values
+    ('course-media', 'course-media', true,  52428800,
+     array['image/png','image/jpeg','image/webp','image/svg+xml','application/pdf','video/mp4']),
+    ('lab-uploads',  'lab-uploads',  false, 26214400,
+     array['image/png','image/jpeg','application/pdf','text/csv','text/plain',
+           'application/zip','application/octet-stream']),
+    ('avatars',      'avatars',      true,  2097152,
+     array['image/png','image/jpeg','image/webp'])
+  on conflict (id) do nothing;
+exception
+  when undefined_table then
+    raise warning 'storage.buckets is absent — skipping bucket creation. This is normal outside Supabase.';
+  when insufficient_privilege then
+    raise warning 'Not permitted to create storage buckets from SQL. Create course-media (public), lab-uploads (private) and avatars (public) under Storage → New bucket.';
+end $$;
 
-drop policy if exists course_media_write on storage.objects;
-create policy course_media_write on storage.objects
-  for all to authenticated
-  using (bucket_id = 'course-media' and app.is_staff())
-  with check (bucket_id = 'course-media' and app.is_staff());
+do $$
+declare
+  spec  text[];
+  specs text[][] := array[
+    array['course_media_read', $p$
+      for select to anon, authenticated
+      using (bucket_id = 'course-media')
+    $p$],
+    array['course_media_write', $p$
+      for all to authenticated
+      using (bucket_id = 'course-media' and app.is_staff())
+      with check (bucket_id = 'course-media' and app.is_staff())
+    $p$],
+    -- Lab uploads live under `<user-id>/<report-id>/<filename>`.
+    array['lab_uploads_own', $p$
+      for all to authenticated
+      using (bucket_id = 'lab-uploads'
+             and (storage.foldername(name))[1] = auth.uid()::text)
+      with check (bucket_id = 'lab-uploads'
+             and (storage.foldername(name))[1] = auth.uid()::text)
+    $p$],
+    array['lab_uploads_staff', $p$
+      for select to authenticated
+      using (bucket_id = 'lab-uploads' and app.is_staff())
+    $p$],
+    array['avatars_read', $p$
+      for select to anon, authenticated
+      using (bucket_id = 'avatars')
+    $p$],
+    array['avatars_own', $p$
+      for all to authenticated
+      using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text)
+      with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text)
+    $p$]
+  ];
+begin
+  -- Checked once rather than caught six times. Outside Supabase — a local
+  -- Postgres, a dry run, a restored dump without the storage extension — the
+  -- schema simply is not there, and that is not an error worth six warnings.
+  if to_regclass('storage.objects') is null then
+    raise warning 'storage.objects is absent — skipping all storage policies. Normal outside Supabase.';
+    return;
+  end if;
 
--- Lab uploads live under `<user-id>/<report-id>/<filename>`.
-drop policy if exists lab_uploads_own on storage.objects;
-create policy lab_uploads_own on storage.objects
-  for all to authenticated
-  using (bucket_id = 'lab-uploads'
-         and (storage.foldername(name))[1] = auth.uid()::text)
-  with check (bucket_id = 'lab-uploads'
-         and (storage.foldername(name))[1] = auth.uid()::text);
-
-drop policy if exists lab_uploads_staff on storage.objects;
-create policy lab_uploads_staff on storage.objects
-  for select to authenticated
-  using (bucket_id = 'lab-uploads' and app.is_staff());
-
-drop policy if exists avatars_read on storage.objects;
-create policy avatars_read on storage.objects
-  for select to anon, authenticated using (bucket_id = 'avatars');
-
-drop policy if exists avatars_own on storage.objects;
-create policy avatars_own on storage.objects
-  for all to authenticated
-  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text)
-  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+  foreach spec slice 1 in array specs loop
+    begin
+      execute format('drop policy if exists %I on storage.objects', spec[1]);
+      execute format('create policy %I on storage.objects %s', spec[1], spec[2]);
+    exception
+      when insufficient_privilege then
+        raise warning 'Could not create storage policy %. Add it under Storage → Policies; everything else in this migration is unaffected.', spec[1];
+    end;
+  end loop;
+end $$;

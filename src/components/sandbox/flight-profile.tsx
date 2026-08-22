@@ -59,11 +59,11 @@ function Term({
 }) {
   const tone =
     emphasis === 'good'
-      ? 'text-signal-400'
+      ? 'text-[var(--good)]'
       : emphasis === 'warn'
-        ? 'text-ember-400'
+        ? 'text-[var(--warn)]'
         : emphasis === 'bad'
-          ? 'text-alert-400'
+          ? 'text-[var(--bad)]'
           : '';
   return (
     <div className="border-b border-[var(--border)] py-2 last:border-0">
@@ -105,7 +105,7 @@ function AltitudeChart({
 }) {
   if (trace.length < 2) {
     return (
-      <p className="rounded-lg border border-dashed border-[var(--border)] px-4 py-8 text-center text-sm text-[var(--text-muted)]">
+      <p className="border border-dashed border-[var(--border)] px-4 py-8 text-center text-sm text-[var(--text-muted)]">
         No trace &mdash; this motor never lifted the airframe off the pad.
       </p>
     );

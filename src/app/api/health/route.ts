@@ -32,7 +32,19 @@ export const runtime = 'nodejs';
  * in precisely the situation it exists to diagnose.
  */
 const BUILD_SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-const BUILD_SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+/*
+ * Both spellings, matching lib/env.ts. Supabase renamed anon -> publishable
+ * and its Vercel integration writes the new name. Reading only the old one
+ * here made this probe report "not configured" about an application that was
+ * running perfectly — the exact opposite of what a health endpoint is for.
+ */
+const BUILD_SUPABASE_ANON =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '';
+const BUILD_ANON_VIA = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ? 'NEXT_PUBLIC_SUPABASE_ANON_KEY'
+  : process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    ? 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'
+    : null;
 const BUILD_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? '';
 
 function shape(value: string) {
@@ -77,12 +89,18 @@ function visibleEnvNames(): string[] {
     .sort();
 }
 
-const EXPECTED = [
-  'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-  'NEXT_PUBLIC_SITE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'IP_HASH_SALT',
+/**
+ * Each entry is a set of ACCEPTABLE names — any one of them satisfies it.
+ * Supabase's newer key names and the legacy ones are interchangeable here.
+ * NEXT_PUBLIC_SITE_URL is deliberately absent: it now defaults to the LMS
+ * host, so its absence is normal and reporting it as missing would train
+ * people to ignore this list.
+ */
+const EXPECTED: readonly (readonly string[])[] = [
+  ['NEXT_PUBLIC_SUPABASE_URL'],
+  ['NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'],
+  ['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SECRET_KEY'],
+  ['IP_HASH_SALT'],
 ];
 
 export async function GET() {
@@ -92,10 +110,16 @@ export async function GET() {
   if (url) {
     try {
       const parsed = new URL(url);
+      // The path check is not cosmetic. `https://<ref>.supabase.co/rest/v1/`
+      // has the right scheme and host, so this reported `valid: true` about a
+      // value that makes every query 404 — the SDK appends its own path on top.
+      const path = parsed.pathname.replace(/\/+$/, '');
       urlValid =
-        parsed.protocol === 'https:' && parsed.hostname.endsWith('.supabase.co')
-          ? true
-          : `parsed, but host is "${parsed.hostname}" and protocol "${parsed.protocol}"`;
+        parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co')
+          ? `host is "${parsed.hostname}" and protocol "${parsed.protocol}"`
+          : path !== ''
+            ? `has a path ("${path}") — that is an endpoint, not the project URL. Use the bare https://<ref>.supabase.co`
+            : true;
     } catch {
       urlValid = 'not a parseable URL';
     }
@@ -103,26 +127,73 @@ export async function GET() {
 
   const buildTime = {
     NEXT_PUBLIC_SUPABASE_URL: { ...shape(url), valid: urlValid, trailingSlash: url.endsWith('/') },
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: shape(BUILD_SUPABASE_ANON),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: { ...shape(BUILD_SUPABASE_ANON), resolvedVia: BUILD_ANON_VIA },
     NEXT_PUBLIC_SITE_URL: shape(BUILD_SITE_URL),
   };
 
+  /*
+   * WHAT THE APP CONCLUDED, not what the dashboard contains.
+   *
+   * `siteUrl` is printed on every issued certificate and is where Stripe
+   * returns a buyer after payment, and it is DERIVED: explicit value, else
+   * https://<NEXT_PUBLIC_LMS_HOST>, else a compiled-in default. So an empty
+   * NEXT_PUBLIC_SITE_URL is fine and an empty NEXT_PUBLIC_LMS_HOST alongside
+   * it is not — the fallback silently becomes a hostname nobody has pointed at
+   * anything, and the failure surfaces months later on a printed certificate.
+   *
+   * Values, not shapes, and that is safe: both are NEXT_PUBLIC_, already in
+   * every page this deployment serves.
+   */
+  const resolved = {
+    siteUrl:
+      BUILD_SITE_URL ||
+      `https://${process.env.NEXT_PUBLIC_LMS_HOST?.trim() || 'develop.afriorbit.space'}`,
+    via: BUILD_SITE_URL
+      ? 'NEXT_PUBLIC_SITE_URL'
+      : process.env.NEXT_PUBLIC_LMS_HOST?.trim()
+        ? 'NEXT_PUBLIC_LMS_HOST'
+        : 'compiled-in default — set NEXT_PUBLIC_SITE_URL',
+    NEXT_PUBLIC_LMS_HOST: process.env.NEXT_PUBLIC_LMS_HOST?.trim() || null,
+  };
+
   const runtimeOnly = {
-    SUPABASE_SERVICE_ROLE_KEY: shape(process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''),
+    SUPABASE_SERVICE_ROLE_KEY: {
+      ...shape(process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY ?? ''),
+      resolvedVia: process.env.SUPABASE_SERVICE_ROLE_KEY
+        ? 'SUPABASE_SERVICE_ROLE_KEY'
+        : process.env.SUPABASE_SECRET_KEY
+          ? 'SUPABASE_SECRET_KEY'
+          : null,
+    },
     IP_HASH_SALT: shape(process.env.IP_HASH_SALT ?? ''),
     EMBED_ALLOWED_ORIGINS: shape(process.env.EMBED_ALLOWED_ORIGINS ?? ''),
   };
 
+  // NEXT_PUBLIC_SITE_URL is optional — it falls back to the LMS host — so its
+  // absence must not make the probe report an unhealthy deployment.
+  const OPTIONAL_BUILD_KEYS = new Set(['NEXT_PUBLIC_SITE_URL']);
   const blocking = Object.entries(buildTime)
-    .filter(([, v]) => !v.present)
+    .filter(([k, v]) => !v.present && !OPTIONAL_BUILD_KEYS.has(k))
     .map(([k]) => k)
     .concat(runtimeOnly.SUPABASE_SERVICE_ROLE_KEY.present ? [] : ['SUPABASE_SERVICE_ROLE_KEY'])
-    .concat(runtimeOnly.IP_HASH_SALT.present ? [] : ['IP_HASH_SALT']);
+    .concat(runtimeOnly.IP_HASH_SALT.present ? [] : ['IP_HASH_SALT'])
+    /*
+     * A present-but-unparseable Supabase URL is BLOCKING, not a warning.
+     *
+     * It was a warning, and the consequence of that was this probe answering
+     * 200 while every page of the site returned 500 — because the Supabase
+     * client constructor rejects the same value this endpoint was merely
+     * tutting about. A health check that says 200 during a total outage is
+     * worse than no health check: it sends you looking somewhere else.
+     */
+    .concat(url && urlValid !== true ? ['NEXT_PUBLIC_SUPABASE_URL (present but invalid)'] : []);
 
   const anonLooksSecret = BUILD_SUPABASE_ANON.startsWith('sb_secret_');
 
   const seen = visibleEnvNames();
-  const notInjected = EXPECTED.filter((n) => !seen.includes(n));
+  const notInjected = EXPECTED.filter((names) => !names.some((n) => seen.includes(n))).map((names) =>
+    names.join(' or '),
+  );
 
   /*
    * Set at runtime but empty at build time is the signature of the inlining
@@ -132,7 +203,21 @@ export async function GET() {
     [
       ['NEXT_PUBLIC_SUPABASE_URL', BUILD_SUPABASE_URL],
       ['NEXT_PUBLIC_SUPABASE_ANON_KEY', BUILD_SUPABASE_ANON],
-      ['NEXT_PUBLIC_SITE_URL', BUILD_SITE_URL],
+      ['NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', BUILD_SUPABASE_ANON],
+      /*
+       * NEXT_PUBLIC_SITE_URL is deliberately NOT listed here.
+       *
+       * It is optional — it falls back to the LMS host — so an empty one is a
+       * legitimate configuration, not the inlining fault this list describes.
+       * Including it produced a report that said `ok: true`, `blocking: []`,
+       * `warnings: []` and then, three fields later, "Redeploy with build cache
+       * UNTICKED" — sending someone to rebuild a deployment that was already
+       * correct. A diagnostic that contradicts itself gets ignored wholesale,
+       * including on the day it is right.
+       *
+       * Where it actually resolves to is reported under `resolved` instead,
+       * which is the thing worth knowing.
+       */
     ] as const
   )
     .filter(([name, built]) => seen.includes(name) && !built)
@@ -158,6 +243,7 @@ export async function GET() {
 
       buildTime,
       runtimeOnly,
+      resolved,
 
       // Names only. Compare `notInjectedForThisEnvironment` against what your
       // dashboard shows — a name here that is not in your dashboard, or in the
@@ -183,9 +269,11 @@ export async function GET() {
       ].filter(Boolean),
 
       nextStep:
-        blocking.length > 0
+        url && urlValid !== true
+          ? `NEXT_PUBLIC_SUPABASE_URL is set but is not a usable URL (${urlValid}). It must be the full origin including the scheme — https://<project-ref>.supabase.co — not the bare hostname, not the dashboard link. Fix it, then redeploy with "Use existing Build Cache" UNTICKED.`
+          : blocking.length > 0
           ? 'Set the listed variables for the Production environment, then redeploy with "Use existing Build Cache" UNTICKED. Build-time variables do not change without a rebuild.'
-          : 'Config looks complete. Next: apply migrations 0001-0010 in the Supabase SQL editor, then enable Authentication → Hooks → Customize Access Token → public.custom_access_token_hook.',
+          : 'Config looks complete. Next: apply EVERY migration in supabase/migrations/, in filename order, in the Supabase SQL editor — then enable Authentication → Hooks → Customize Access Token → public.custom_access_token_hook. Applying only some of them leaves a half-migrated database, which is worse than none because it half-works.',
     },
     {
       status: blocking.length === 0 ? 200 : 503,

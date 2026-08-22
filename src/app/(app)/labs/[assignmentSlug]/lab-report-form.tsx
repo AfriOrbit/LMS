@@ -81,7 +81,7 @@ export function LabReportForm({
           </dl>
         ) : null}
 
-        <pre className="mt-4 whitespace-pre-wrap rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4 text-sm">
+        <pre className="mt-4 whitespace-pre-wrap border border-[var(--border)] bg-[var(--bg)] p-4 text-sm">
           {narrative || '(no narrative)'}
         </pre>
       </Card>

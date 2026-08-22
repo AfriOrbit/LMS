@@ -99,7 +99,7 @@ export function ChallengeForm({ next }: { next: string }) {
         <button
           type="button"
           onClick={() => setMode('recovery')}
-          className="text-ion-300 hover:underline"
+          className="text-[var(--accent)] hover:underline"
         >
           Lost your device? Use a recovery code
         </button>

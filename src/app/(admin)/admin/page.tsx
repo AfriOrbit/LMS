@@ -85,7 +85,7 @@ export default async function AdminOverviewPage() {
           <section>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold tracking-tight">Awaiting approval</h2>
-              <Link href="/admin/users" className="text-sm text-ion-300 hover:underline">
+              <Link href="/admin/users" className="text-sm text-[var(--accent)] hover:underline">
                 All users →
               </Link>
             </div>
@@ -123,7 +123,7 @@ export default async function AdminOverviewPage() {
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold tracking-tight">Grading queue</h2>
-            <Link href="/admin/grading" className="text-sm text-ion-300 hover:underline">
+            <Link href="/admin/grading" className="text-sm text-[var(--accent)] hover:underline">
               Open queue →
             </Link>
           </div>
@@ -140,7 +140,7 @@ export default async function AdminOverviewPage() {
           <section className="lg:col-span-2">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold tracking-tight">Recent activity</h2>
-              <Link href="/admin/audit" className="text-sm text-ion-300 hover:underline">
+              <Link href="/admin/audit" className="text-sm text-[var(--accent)] hover:underline">
                 Full audit log →
               </Link>
             </div>

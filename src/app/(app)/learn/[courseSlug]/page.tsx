@@ -2,37 +2,33 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import {
+  courseLessons,
+  getCourse,
+  lessonCount,
+  type LessonKind,
+} from '@/content/curriculum';
+import {
   Badge,
   ButtonLink,
   Card,
   PageHeader,
   ProgressBar,
 } from '@/components/ui/primitives';
+import { EnrollPanel } from '@/components/learn/enroll-panel';
 import { requireActiveMember } from '@/lib/auth';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { allGradedQuizzesPassed, loadCourseState } from '@/lib/learning/course-state';
 import { formatMinutes } from '@/lib/utils';
-import type {
-  Course,
-  Enrollment,
-  LabAssignment,
-  Lesson,
-  LessonProgress,
-  Module,
-  Quiz,
-  QuizAttempt,
-} from '@/types/db';
 
 import { ClaimCertificate } from './claim-certificate';
 
 export const dynamic = 'force-dynamic';
 
-const KIND_LABEL: Record<string, string> = {
+const KIND_LABEL: Record<LessonKind, string> = {
   reading: 'Reading',
   video: 'Video',
   lab: 'Lab',
   quiz: 'Quiz',
   simulation: 'Sandbox',
-  download: 'Download',
 };
 
 export default async function CourseHomePage({
@@ -42,100 +38,35 @@ export default async function CourseHomePage({
 }) {
   const { courseSlug } = await params;
   const ctx = await requireActiveMember();
-  const supabase = await createSupabaseServerClient();
 
-  const { data: course } = await supabase
-    .from('courses')
-    .select('*')
-    .eq('slug', courseSlug)
-    .maybeSingle<Course>();
-
+  // Structure comes from the content module and is always available.
+  const course = getCourse(courseSlug);
   if (!course) notFound();
 
-  const [
-    { data: enrollment },
-    { data: modules },
-    { data: lessons },
-    { data: progress },
-    { data: quizzes },
-    { data: assignments },
-  ] = await Promise.all([
-    supabase
-      .from('enrollments')
-      .select('*')
-      .eq('user_id', ctx.userId)
-      .eq('course_id', course.id)
-      .maybeSingle<Enrollment>(),
-    supabase
-      .from('modules')
-      .select('*')
-      .eq('course_id', course.id)
-      .order('sort_order')
-      .returns<Module[]>(),
-    supabase
-      .from('lessons_readable')
-      .select('*')
-      .eq('course_id', course.id)
-      .order('sort_order')
-      .returns<Lesson[]>(),
-    supabase
-      .from('lesson_progress')
-      .select('*')
-      .eq('user_id', ctx.userId)
-      .eq('course_id', course.id)
-      .returns<LessonProgress[]>(),
-    supabase
-      .from('quizzes')
-      .select('*')
-      .eq('course_id', course.id)
-      .returns<Quiz[]>(),
-    supabase
-      .from('lab_assignments')
-      .select('*')
-      .eq('course_id', course.id)
-      .returns<LabAssignment[]>(),
-  ]);
+  // Per-learner state is an enhancement. A dead database yields the empty
+  // state and the outline below still renders in full.
+  const state = await loadCourseState(course.slug, ctx.userId);
 
-  if (!enrollment) {
-    return (
-      <Card className="mx-auto max-w-lg text-center">
-        <h1 className="text-lg font-semibold">You are not enrolled</h1>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          Enrol from the catalogue page to open this course.
-        </p>
-        <ButtonLink href={`/catalog/${course.slug}`} className="mt-5">
-          Go to course page
-        </ButtonLink>
-      </Card>
-    );
-  }
+  const completed = new Set(state.completedSlugs);
+  const ordered = courseLessons(course);
+  const total = lessonCount(course);
+  const nextLesson =
+    ordered.find(({ lesson }) => !completed.has(lesson.slug))?.lesson ??
+    ordered[0]?.lesson;
 
-  const completedIds = new Set(
-    (progress ?? []).filter((p) => p.completed).map((p) => p.lesson_id),
-  );
-  const ordered = lessons ?? [];
-  const nextLesson = ordered.find((l) => !completedIds.has(l.id)) ?? ordered[0];
+  const gradedQuizzes = state.quizzes.filter((quiz) => quiz.isGraded);
+  const contentQuiz = course.quiz;
+  const contentQuizRow = contentQuiz
+    ? (state.quizzes.find((quiz) => quiz.slug === contentQuiz.slug) ?? null)
+    : null;
 
-  // Attempt state for the graded assessments.
-  const gradedQuizzes = (quizzes ?? []).filter((q) => q.is_graded);
-  const { data: attempts } = gradedQuizzes.length
-    ? await supabase
-        .from('quiz_attempts')
-        .select('quiz_id, passed, score_pct, status')
-        .eq('user_id', ctx.userId)
-        .in(
-          'quiz_id',
-          gradedQuizzes.map((q) => q.id),
-        )
-        .returns<Pick<QuizAttempt, 'quiz_id' | 'passed' | 'score_pct' | 'status'>[]>()
-    : { data: [] };
-
-  const passedQuizIds = new Set(
-    (attempts ?? []).filter((a) => a.passed).map((a) => a.quiz_id),
-  );
-  const allQuizzesPassed = gradedQuizzes.every((q) => passedQuizIds.has(q.id));
   const eligibleForCertificate =
-    course.issues_certificate && enrollment.progress_pct >= 100 && allQuizzesPassed;
+    state.available &&
+    state.enrolled &&
+    state.issuesCertificate &&
+    state.progressPct >= 100 &&
+    allGradedQuizzesPassed(state) &&
+    state.courseId !== null;
 
   return (
     <>
@@ -148,13 +79,13 @@ export default async function CourseHomePage({
       </nav>
 
       <PageHeader
-        eyebrow={course.subtitle || undefined}
+        eyebrow={course.subtitle}
         title={course.title}
         description={course.summary}
         actions={
           nextLesson ? (
             <ButtonLink href={`/learn/${course.slug}/${nextLesson.slug}`}>
-              {completedIds.size === 0 ? 'Start course' : 'Continue'}
+              {completed.size === 0 ? 'Start course' : 'Continue'}
             </ButtonLink>
           ) : null
         }
@@ -162,25 +93,46 @@ export default async function CourseHomePage({
 
       <Card className="mb-8">
         <ProgressBar
-          value={enrollment.progress_pct}
-          label={`${completedIds.size} of ${ordered.length} lessons complete`}
+          value={state.enrolled ? state.progressPct : (completed.size / total) * 100}
+          label={`${completed.size} of ${total} lessons complete`}
         />
+        {!state.enrolled ? (
+          <p className="mt-3 text-xs text-[var(--text-muted)]">
+            You are reading this course without an enrolment. Every lesson and simulator
+            is open; enrol to have your progress saved and your certificate tracked.
+          </p>
+        ) : null}
       </Card>
 
-      {eligibleForCertificate ? (
+      {!state.enrolled && state.available && state.courseId ? (
+        <Card className="mb-8">
+          <h2 className="text-base font-semibold">Track your progress</h2>
+          <EnrollPanel
+            courseId={state.courseId}
+            courseSlug={course.slug}
+            priceCents={state.priceCents}
+            signedIn
+            accountActive={ctx.profile.status === 'active'}
+            enrolled={false}
+          />
+        </Card>
+      ) : null}
+
+      {eligibleForCertificate && state.courseId ? (
         <div className="mb-8">
-          <ClaimCertificate courseId={course.id} />
+          <ClaimCertificate courseId={state.courseId} />
         </div>
       ) : null}
 
       <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
         <div className="space-y-4">
-          {(modules ?? []).map((module, index) => {
-            const moduleLessons = ordered.filter((l) => l.module_id === module.id);
-            const done = moduleLessons.filter((l) => completedIds.has(l.id)).length;
+          {course.modules.map((module, index) => {
+            const done = module.lessons.filter((lesson) =>
+              completed.has(lesson.slug),
+            ).length;
 
             return (
-              <Card key={module.id} className="p-0">
+              <Card key={module.slug} className="p-0">
                 <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
                   <div>
                     <p className="font-mono text-xs text-[var(--text-muted)]">
@@ -193,34 +145,33 @@ export default async function CourseHomePage({
                       </p>
                     ) : null}
                   </div>
-                  <Badge tone={done === moduleLessons.length ? 'success' : 'neutral'}>
-                    {done}/{moduleLessons.length}
+                  <Badge tone={done === module.lessons.length ? 'success' : 'neutral'}>
+                    {done}/{module.lessons.length}
                   </Badge>
                 </div>
 
                 <ul className="divide-y divide-[var(--border)]">
-                  {moduleLessons.map((lesson) => {
-                    const isDone = completedIds.has(lesson.id);
+                  {module.lessons.map((lesson) => {
+                    const isDone = completed.has(lesson.slug);
                     return (
-                      <li key={lesson.id}>
+                      <li key={lesson.slug}>
                         <Link
                           href={`/learn/${course.slug}/${lesson.slug}`}
-                          className="flex items-center gap-3 px-5 py-3 text-sm transition-colors hover:bg-void-800/60"
+                          className="flex items-center gap-3 px-5 py-3 text-sm transition-colors hover:bg-[var(--bg-hover)]"
                         >
                           <span
                             className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] ${
-                              isDone
-                                ? 'border-signal-500 bg-signal-500/20 text-signal-400'
-                                : 'border-[var(--border)] text-transparent'
-                            }`}
+ isDone
+ ? 'border-[var(--good-line)] bg-[var(--good-bg)] text-[var(--good)]'
+ : 'border-[var(--border)] text-transparent'
+ }`}
                             aria-hidden="true"
                           >
                             ✓
                           </span>
                           <span className="min-w-0 flex-1 truncate">{lesson.title}</span>
                           <span className="shrink-0 text-xs text-[var(--text-muted)]">
-                            {KIND_LABEL[lesson.kind] ?? lesson.kind} ·{' '}
-                            {lesson.estimated_minutes} min
+                            {KIND_LABEL[lesson.kind]} · {lesson.minutes} min
                           </span>
                         </Link>
                       </li>
@@ -233,53 +184,68 @@ export default async function CourseHomePage({
         </div>
 
         <aside className="space-y-4">
-          {gradedQuizzes.length > 0 ? (
+          {contentQuiz ? (
             <Card>
-              <h2 className="text-sm font-semibold">Assessments</h2>
-              <ul className="mt-3 space-y-3">
-                {gradedQuizzes.map((quiz) => {
-                  const best = (attempts ?? [])
-                    .filter((a) => a.quiz_id === quiz.id && a.score_pct !== null)
-                    .reduce<number | null>(
-                      (max, a) => Math.max(max ?? 0, Number(a.score_pct)),
-                      null,
-                    );
-                  const used = (attempts ?? []).filter((a) => a.quiz_id === quiz.id).length;
+              <h2 className="text-sm font-semibold">Assessment</h2>
+              <div className="mt-3 text-sm">
+                {contentQuizRow ? (
+                  <Link
+                    href={`/quiz/${contentQuizRow.id}`}
+                    className="font-medium hover:text-[var(--accent)]"
+                  >
+                    {contentQuiz.title}
+                  </Link>
+                ) : (
+                  <p className="font-medium">{contentQuiz.title}</p>
+                )}
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                  {contentQuiz.questions.length} question
+                  {contentQuiz.questions.length === 1 ? '' : 's'}
+                  {contentQuizRow
+                    ? ` · pass ${contentQuizRow.passThreshold}% · ${contentQuizRow.attemptsUsed}/${contentQuizRow.maxAttempts} attempts`
+                    : ' · opens once assessments are loaded for your account'}
+                </p>
+                {contentQuizRow?.passed ? (
+                  <Badge tone="success" className="mt-2">
+                    Passed
+                  </Badge>
+                ) : null}
+              </div>
+            </Card>
+          ) : null}
 
-                  return (
+          {gradedQuizzes.filter((quiz) => quiz.slug !== contentQuiz?.slug).length > 0 ? (
+            <Card>
+              <h2 className="text-sm font-semibold">Other assessments</h2>
+              <ul className="mt-3 space-y-3">
+                {gradedQuizzes
+                  .filter((quiz) => quiz.slug !== contentQuiz?.slug)
+                  .map((quiz) => (
                     <li key={quiz.id} className="text-sm">
                       <Link
                         href={`/quiz/${quiz.id}`}
-                        className="font-medium hover:text-ion-300"
+                        className="font-medium hover:text-[var(--accent)]"
                       >
                         {quiz.title}
                       </Link>
                       <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                        Pass {quiz.pass_threshold}% · {used}/{quiz.max_attempts} attempts
-                        {best !== null ? ` · best ${best}%` : ''}
+                        Pass {quiz.passThreshold}% · {quiz.attemptsUsed}/{quiz.maxAttempts}{' '}
+                        attempts
+                        {quiz.bestScorePct !== null ? ` · best ${quiz.bestScorePct}%` : ''}
                       </p>
-                      {passedQuizIds.has(quiz.id) ? (
-                        <Badge tone="success" className="mt-1">
-                          Passed
-                        </Badge>
-                      ) : null}
                     </li>
-                  );
-                })}
+                  ))}
               </ul>
             </Card>
           ) : null}
 
-          {(assignments ?? []).length > 0 ? (
+          {state.assignments.length > 0 ? (
             <Card>
               <h2 className="text-sm font-semibold">Lab reports</h2>
               <ul className="mt-3 space-y-2 text-sm">
-                {(assignments ?? []).map((assignment) => (
+                {state.assignments.map((assignment) => (
                   <li key={assignment.id}>
-                    <Link
-                      href={`/labs/${assignment.slug}`}
-                      className="hover:text-ion-300"
-                    >
+                    <Link href={`/labs/${assignment.slug}`} className="hover:text-[var(--accent)]">
                       {assignment.title}
                     </Link>
                   </li>
@@ -293,17 +259,33 @@ export default async function CourseHomePage({
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between gap-3">
                 <dt className="text-[var(--text-muted)]">Effort</dt>
-                <dd>{formatMinutes(course.estimated_minutes)}</dd>
+                <dd>{formatMinutes(course.minutes)}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-[var(--text-muted)]">Pass mark</dt>
-                <dd>{course.pass_threshold}%</dd>
+                <dt className="text-[var(--text-muted)]">Modules</dt>
+                <dd>{course.modules.length}</dd>
               </div>
               <div className="flex justify-between gap-3">
-                <dt className="text-[var(--text-muted)]">Certificate</dt>
-                <dd>{course.issues_certificate ? 'Yes' : 'No'}</dd>
+                <dt className="text-[var(--text-muted)]">Lessons</dt>
+                <dd>{total}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-[var(--text-muted)]">Hardware</dt>
+                <dd>{course.requiresHardware ? 'Required' : 'Not required'}</dd>
               </div>
             </dl>
+            {course.requiresHardware && course.hardwareNotes ? (
+              <p className="mt-3 border-t border-[var(--border)] pt-3 text-xs text-[var(--text-muted)]">
+                {course.hardwareNotes}
+              </p>
+            ) : null}
+          </Card>
+
+          <Card>
+            <h2 className="text-sm font-semibold">Source</h2>
+            <p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+              {course.source}
+            </p>
           </Card>
         </aside>
       </div>

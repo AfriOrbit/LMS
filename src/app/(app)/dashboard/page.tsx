@@ -1,6 +1,13 @@
-import Link from 'next/link';
+import Link from "next/link";
 
-import { BarRow, CAT, Donut, Heatmap, Sparkline, STATUS } from '@/components/charts';
+import {
+  BarRow,
+  CAT,
+  Donut,
+  Heatmap,
+  Sparkline,
+  STATUS,
+} from "@/components/charts";
 import {
   Alert,
   Badge,
@@ -10,14 +17,19 @@ import {
   PageHeader,
   ProgressBar,
   Stat,
-} from '@/components/ui/primitives';
-import { requireActiveMember } from '@/lib/auth';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { formatDate, formatDateTime, formatMinutes, LEVEL_LABEL } from '@/lib/utils';
-import type { Certificate, Course, Enrollment, LabSession } from '@/types/db';
+} from "@/components/ui/primitives";
+import { requireActiveMember } from "@/lib/auth";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  formatDate,
+  formatDateTime,
+  formatMinutes,
+  LEVEL_LABEL,
+} from "@/lib/utils";
+import type { Certificate, Course, Enrollment, LabSession } from "@/types/db";
 
-export const metadata = { title: 'Dashboard' };
-export const dynamic = 'force-dynamic';
+export const metadata = { title: "Dashboard" };
+export const dynamic = "force-dynamic";
 
 interface EnrollmentWithCourse extends Enrollment {
   courses: Course | null;
@@ -43,8 +55,11 @@ const STALL_DAYS = 14;
 /** Below three points a line has no shape worth drawing. */
 const SPARKLINE_MIN_POINTS = 3;
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const MONTH_SHORT = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC' });
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTH_SHORT = new Intl.DateTimeFormat("en-GB", {
+  month: "short",
+  timeZone: "UTC",
+});
 
 export default async function DashboardPage() {
   const ctx = await requireActiveMember();
@@ -59,69 +74,99 @@ export default async function DashboardPage() {
   today.setUTCHours(0, 0, 0, 0);
   const weekdayIndex = (today.getUTCDay() + 6) % 7; // Monday = 0
   const gridEnd = new Date(today.getTime() + (6 - weekdayIndex) * DAY_MS);
-  const gridStart = new Date(gridEnd.getTime() - (ACTIVITY_WEEKS * 7 - 1) * DAY_MS);
+  const gridStart = new Date(
+    gridEnd.getTime() - (ACTIVITY_WEEKS * 7 - 1) * DAY_MS,
+  );
 
+  /*
+   * Every one of these results was destructured for `data` alone, with `error`
+   * discarded. Combined with the `?? []` fallbacks below, a failing query — a
+   * table that does not exist because migrations were never applied, an RLS
+   * policy denying the row, a paused project — produced a dashboard that
+   * rendered perfectly and reported zero of everything. Silent wrongness is
+   * worse than an error: nobody investigates a page that looks fine.
+   *
+   * The errors are now collected and surfaced. The fallbacks stay, so one dead
+   * query still cannot take the page down.
+   */
   const [
-    { data: enrollments },
-    { data: certificates },
-    { data: sessions },
-    { data: pulses },
-    { data: attempts },
-    { count: lessonsCompletedCount },
+    { data: enrollments, error: enrollmentsError },
+    { data: certificates, error: certificatesError },
+    { data: sessions, error: sessionsError },
+    { data: pulses, error: pulsesError },
+    { data: attempts, error: attemptsError },
+    { count: lessonsCompletedCount, error: countError },
   ] = await Promise.all([
     supabase
-      .from('enrollments')
-      .select('*, courses(*)')
-      .eq('user_id', ctx.userId)
-      .order('updated_at', { ascending: false })
+      .from("enrollments")
+      .select("*, courses(*)")
+      .eq("user_id", ctx.userId)
+      .order("updated_at", { ascending: false })
       .returns<EnrollmentWithCourse[]>(),
     supabase
-      .from('certificates')
-      .select('*')
-      .eq('user_id', ctx.userId)
-      .order('issued_at', { ascending: false })
+      .from("certificates")
+      .select("*")
+      .eq("user_id", ctx.userId)
+      .order("issued_at", { ascending: false })
       .returns<Certificate[]>(),
     supabase
-      .from('lab_sessions')
-      .select('*')
-      .gte('starts_at', new Date().toISOString())
-      .order('starts_at')
+      .from("lab_sessions")
+      .select("*")
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at")
       .limit(4)
       .returns<LabSession[]>(),
     supabase
-      .from('lesson_progress')
-      .select('completed_at')
-      .eq('user_id', ctx.userId)
-      .eq('completed', true)
-      .gte('completed_at', gridStart.toISOString())
+      .from("lesson_progress")
+      .select("completed_at")
+      .eq("user_id", ctx.userId)
+      .eq("completed", true)
+      .gte("completed_at", gridStart.toISOString())
       .returns<ProgressPulse[]>(),
     supabase
-      .from('quiz_attempts')
-      .select('course_id, score_pct, passed, submitted_at, quizzes(title)')
-      .eq('user_id', ctx.userId)
-      .not('score_pct', 'is', null)
-      .not('submitted_at', 'is', null)
-      .order('submitted_at')
+      .from("quiz_attempts")
+      .select("course_id, score_pct, passed, submitted_at, quizzes(title)")
+      .eq("user_id", ctx.userId)
+      .not("score_pct", "is", null)
+      .not("submitted_at", "is", null)
+      .order("submitted_at")
       .returns<AttemptScore[]>(),
     // Head-only count: lifetime lessons completed, unaffected by the row cap.
     supabase
-      .from('lesson_progress')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', ctx.userId)
-      .eq('completed', true),
+      .from("lesson_progress")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", ctx.userId)
+      .eq("completed", true),
   ]);
+
+  const queryErrors = (
+    [
+      ["enrolments", enrollmentsError],
+      ["certificates", certificatesError],
+      ["lab sessions", sessionsError],
+      ["lesson progress", pulsesError],
+      ["quiz attempts", attemptsError],
+      ["lesson count", countError],
+    ] as const
+  ).filter(([, e]) => e);
+
+  // Postgres 42P01 is "undefined_table": the schema was never applied. That has
+  // one specific fix, so it gets its own message rather than a generic one.
+  const schemaMissing = queryErrors.some(
+    ([, e]) => (e as { code?: string } | null)?.code === "42P01",
+  );
 
   const allEnrollments = enrollments ?? [];
   const allCertificates = certificates ?? [];
-  const active = allEnrollments.filter((e) => e.status === 'active');
-  const completed = allEnrollments.filter((e) => e.status === 'completed');
-  const firstName = (ctx.profile.full_name || 'there').split(' ')[0];
+  const active = allEnrollments.filter((e) => e.status === "active");
+  const completed = allEnrollments.filter((e) => e.status === "completed");
+  const firstName = (ctx.profile.full_name || "there").split(" ")[0];
 
   /* ---------------------------------------------------------------------- */
   /* Derived series for the charts                                           */
   /* ---------------------------------------------------------------------- */
 
-  const tracked = allEnrollments.filter((e) => e.status !== 'withdrawn');
+  const tracked = allEnrollments.filter((e) => e.status !== "withdrawn");
 
   const lessonsDone = lessonsCompletedCount ?? 0;
 
@@ -132,7 +177,7 @@ export default async function DashboardPage() {
 
   const progressByCourse = tracked
     .map((e) => ({
-      label: e.courses?.title ?? 'Untitled course',
+      label: e.courses?.title ?? "Untitled course",
       value: e.progress_pct,
     }))
     .sort((a, b) => b.value - a.value);
@@ -149,8 +194,11 @@ export default async function DashboardPage() {
 
   const activityCells: { x: number; y: number; value: number }[] = [];
   for (const [day, value] of activityByDay) {
-    const offset = Math.round((Date.parse(`${day}T00:00:00.000Z`) - gridStart.getTime()) / DAY_MS);
-    if (!Number.isFinite(offset) || offset < 0 || offset >= ACTIVITY_WEEKS * 7) continue;
+    const offset = Math.round(
+      (Date.parse(`${day}T00:00:00.000Z`) - gridStart.getTime()) / DAY_MS,
+    );
+    if (!Number.isFinite(offset) || offset < 0 || offset >= ACTIVITY_WEEKS * 7)
+      continue;
     activityCells.push({ x: Math.floor(offset / 7), y: offset % 7, value });
   }
   const busiestDay = Math.max(1, ...activityCells.map((c) => c.value));
@@ -161,7 +209,7 @@ export default async function DashboardPage() {
   for (let c = 0, previousMonth = -1; c < ACTIVITY_WEEKS; c += 1) {
     const first = new Date(gridStart.getTime() + c * 7 * DAY_MS);
     const month = first.getUTCMonth();
-    weekLabels.push(month === previousMonth ? '' : MONTH_SHORT.format(first));
+    weekLabels.push(month === previousMonth ? "" : MONTH_SHORT.format(first));
     previousMonth = month;
   }
 
@@ -171,7 +219,7 @@ export default async function DashboardPage() {
   );
   const quizScores = scoredAttempts.map((a) => Number(a.score_pct));
   const quizLabels = scoredAttempts.map(
-    (a) => `${a.quizzes?.title ?? 'Quiz'} · ${formatDate(a.submitted_at)}`,
+    (a) => `${a.quizzes?.title ?? "Quiz"} · ${formatDate(a.submitted_at)}`,
   );
   const quizAverage =
     quizScores.length === 0
@@ -187,7 +235,7 @@ export default async function DashboardPage() {
   const stallCutoff = today.getTime() - STALL_DAYS * DAY_MS;
   const stalled = tracked.filter(
     (e) =>
-      e.status === 'active' &&
+      e.status === "active" &&
       e.progress_pct === 0 &&
       Date.parse(e.started_at) < stallCutoff,
   );
@@ -197,11 +245,41 @@ export default async function DashboardPage() {
   );
   const failing = tracked.filter((e) => failedCourseIds.has(e.course_id));
 
-  const showProgress = tracked.length > 0 || activityCells.length > 0 || quizScores.length > 0;
+  const showProgress =
+    tracked.length > 0 || activityCells.length > 0 || quizScores.length > 0;
   const showSparkline = quizScores.length >= SPARKLINE_MIN_POINTS;
 
   return (
     <>
+      {queryErrors.length > 0 && (
+        <div className="mb-8">
+          <Alert
+            tone={schemaMissing ? "danger" : "warning"}
+            title={
+              schemaMissing
+                ? "The database schema has not been applied"
+                : `${queryErrors.length} dashboard ${queryErrors.length === 1 ? "query" : "queries"} failed`
+            }
+          >
+            {schemaMissing ? (
+              <p>
+                Tables this page needs do not exist in the connected Supabase
+                project. Apply the migrations in{" "}
+                <code>supabase/migrations/</code> — all twelve, in filename
+                order — then reload. Until then the figures below are zeroes,
+                not measurements.
+              </p>
+            ) : (
+              <p>
+                Figures for {queryErrors.map(([name]) => name).join(", ")} could
+                not be read, so they are shown as zero rather than as data. This
+                is usually a row-level security policy or a paused project.
+              </p>
+            )}
+          </Alert>
+        </div>
+      )}
+
       <PageHeader
         eyebrow="EduSat programme"
         title={`Welcome back, ${firstName}`}
@@ -220,7 +298,7 @@ export default async function DashboardPage() {
           hint={
             completed.length > 0
               ? `${completed.length} completed`
-              : 'Nothing finished yet'
+              : "Nothing finished yet"
           }
         />
         <Stat
@@ -230,11 +308,11 @@ export default async function DashboardPage() {
         />
         <Stat
           label="Average quiz score"
-          value={quizAverage === null ? '—' : `${Math.round(quizAverage)}%`}
+          value={quizAverage === null ? "—" : `${Math.round(quizAverage)}%`}
           hint={
             quizScores.length === 0
-              ? 'No graded attempts yet'
-              : `${quizScores.length} graded ${quizScores.length === 1 ? 'attempt' : 'attempts'}`
+              ? "No graded attempts yet"
+              : `${quizScores.length} graded ${quizScores.length === 1 ? "attempt" : "attempts"}`
           }
         />
         <Stat
@@ -242,8 +320,8 @@ export default async function DashboardPage() {
           value={allCertificates.length}
           hint={
             allCertificates.length === 0
-              ? 'Finish a course to earn one'
-              : 'Verifiable and downloadable'
+              ? "Finish a course to earn one"
+              : "Verifiable and downloadable"
           }
         />
       </div>
@@ -252,20 +330,21 @@ export default async function DashboardPage() {
         <div className="mb-10 space-y-3">
           {failing.length > 0 ? (
             <Alert tone="warning" title="A quiz needs another run">
-              You have a failed attempt in{' '}
+              You have a failed attempt in{" "}
               {failing.map((e, i) => (
                 <span key={e.id}>
-                  {i > 0 ? (i === failing.length - 1 ? ' and ' : ', ') : ''}
+                  {i > 0 ? (i === failing.length - 1 ? " and " : ", ") : ""}
                   <Link
-                    href={e.courses ? `/learn/${e.courses.slug}` : '/dashboard'}
+                    href={e.courses ? `/learn/${e.courses.slug}` : "/dashboard"}
                     className="font-medium underline underline-offset-2"
                   >
-                    {e.courses?.title ?? 'a course'}
+                    {e.courses?.title ?? "a course"}
                   </Link>
                 </span>
               ))}
-              . Revisit the lesson before you spend another attempt &mdash; the explanations
-              shown after a graded attempt point straight at what was missed.
+              . Revisit the lesson before you spend another attempt &mdash; the
+              explanations shown after a graded attempt point straight at what
+              was missed.
             </Alert>
           ) : null}
 
@@ -273,26 +352,29 @@ export default async function DashboardPage() {
             <Alert tone="info" title="Not started yet">
               {stalled.map((e, i) => (
                 <span key={e.id}>
-                  {i > 0 ? (i === stalled.length - 1 ? ' and ' : ', ') : ''}
+                  {i > 0 ? (i === stalled.length - 1 ? " and " : ", ") : ""}
                   <Link
-                    href={e.courses ? `/learn/${e.courses.slug}` : '/dashboard'}
+                    href={e.courses ? `/learn/${e.courses.slug}` : "/dashboard"}
                     className="font-medium underline underline-offset-2"
                   >
-                    {e.courses?.title ?? 'A course'}
+                    {e.courses?.title ?? "A course"}
                   </Link>
                 </span>
-              ))}{' '}
-              {stalled.length === 1 ? 'has' : 'have'} been open for more than {STALL_DAYS} days
-              with no lessons completed. The first module is short &mdash; one sitting is
-              usually enough to break the ice.
+              ))}{" "}
+              {stalled.length === 1 ? "has" : "have"} been open for more than{" "}
+              {STALL_DAYS} days with no lessons completed. The first module is
+              short &mdash; one sitting is usually enough to break the ice.
             </Alert>
           ) : null}
 
           {!ctx.profile.mfa_enabled ? (
             <Alert tone="info" title="Two-factor authentication is off">
-              <Link href="/account/mfa" className="font-medium underline underline-offset-2">
+              <Link
+                href="/account/mfa"
+                className="font-medium underline underline-offset-2"
+              >
                 Enable 2FA
-              </Link>{' '}
+              </Link>{" "}
               to protect your certificates and lab bookings.
             </Alert>
           ) : null}
@@ -301,18 +383,30 @@ export default async function DashboardPage() {
 
       {showProgress ? (
         <section className="mb-12">
-          <h2 className="mb-4 text-lg font-semibold tracking-tight">Your progress</h2>
+          <h2 className="mb-4 text-lg font-semibold tracking-tight">
+            Your progress
+          </h2>
 
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="flex flex-col items-center">
-              <h3 className="mb-3 self-start text-sm font-semibold">Overall completion</h3>
+              <h3 className="mb-3 self-start text-sm font-semibold">
+                Overall completion
+              </h3>
               <Donut
                 segments={[
-                  { label: 'Complete', value: Math.round(overallPct), color: CAT[0] },
-                  { label: 'Remaining', value: 100 - Math.round(overallPct), color: 'var(--border)' },
+                  {
+                    label: "Complete",
+                    value: Math.round(overallPct),
+                    color: CAT[0],
+                  },
+                  {
+                    label: "Remaining",
+                    value: 100 - Math.round(overallPct),
+                    color: "var(--border)",
+                  },
                 ]}
                 centerValue={`${Math.round(overallPct)}%`}
-                centerLabel={`of ${tracked.length} ${tracked.length === 1 ? 'course' : 'courses'}`}
+                centerLabel={`of ${tracked.length} ${tracked.length === 1 ? "course" : "courses"}`}
                 format={(v) => `${Math.round(v)}%`}
                 emptyMessage="Enrol in a course to start tracking completion."
               />
@@ -337,7 +431,9 @@ export default async function DashboardPage() {
             </Card>
           </div>
 
-          <div className={`mt-4 grid gap-4 ${showSparkline ? 'lg:grid-cols-2' : ''}`}>
+          <div
+            className={`mt-4 grid gap-4 ${showSparkline ? "lg:grid-cols-2" : ""}`}
+          >
             <Card>
               <h3 className="mb-1 text-sm font-semibold">Study activity</h3>
               <p className="mb-4 text-xs text-[var(--text-muted)]">
@@ -353,7 +449,9 @@ export default async function DashboardPage() {
                 cellHeight={16}
                 labelWidth={34}
                 format={(v) =>
-                  v === 0 ? 'no lessons' : `${v} ${v === 1 ? 'lesson' : 'lessons'}`
+                  v === 0
+                    ? "no lessons"
+                    : `${v} ${v === 1 ? "lesson" : "lessons"}`
                 }
                 emptyMessage={`No completed lessons in the last ${ACTIVITY_WEEKS} weeks.`}
               />
@@ -362,7 +460,9 @@ export default async function DashboardPage() {
             {showSparkline ? (
               <Card>
                 <div className="mb-1 flex items-baseline justify-between gap-3">
-                  <h3 className="text-sm font-semibold">Quiz scores over time</h3>
+                  <h3 className="text-sm font-semibold">
+                    Quiz scores over time
+                  </h3>
                   {quizAverage !== null ? (
                     <span className="text-xs text-[var(--text-muted)]">
                       Average {Math.round(quizAverage)}%
@@ -395,13 +495,17 @@ export default async function DashboardPage() {
       ) : null}
 
       <section className="mb-12">
-        <h2 className="mb-4 text-lg font-semibold tracking-tight">Continue learning</h2>
+        <h2 className="mb-4 text-lg font-semibold tracking-tight">
+          Continue learning
+        </h2>
 
         {active.length === 0 ? (
           <EmptyState
             title="Nothing in progress"
             description="Enrol in a course to see it here. The EduSat track is designed to be taken in order, starting with CubeSat Systems Engineering Fundamentals."
-            action={<ButtonLink href="/catalog">Browse the catalogue</ButtonLink>}
+            action={
+              <ButtonLink href="/catalog">Browse the catalogue</ButtonLink>
+            }
           />
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
@@ -411,7 +515,9 @@ export default async function DashboardPage() {
               return (
                 <Card key={enrollment.id} className="flex flex-col">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <Badge tone={course.level === 'advanced' ? 'warning' : 'info'}>
+                    <Badge
+                      tone={course.level === "advanced" ? "warning" : "info"}
+                    >
                       {LEVEL_LABEL[course.level]}
                     </Badge>
                     {course.requires_hardware ? (
@@ -419,7 +525,10 @@ export default async function DashboardPage() {
                     ) : null}
                   </div>
                   <h3 className="text-base font-semibold leading-snug">
-                    <Link href={`/learn/${course.slug}`} className="hover:text-ion-300">
+                    <Link
+                      href={`/learn/${course.slug}`}
+                      className="hover:text-[var(--accent)]"
+                    >
                       {course.title}
                     </Link>
                   </h3>
@@ -448,7 +557,9 @@ export default async function DashboardPage() {
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section>
-          <h2 className="mb-4 text-lg font-semibold tracking-tight">Upcoming lab sessions</h2>
+          <h2 className="mb-4 text-lg font-semibold tracking-tight">
+            Upcoming lab sessions
+          </h2>
           {(sessions ?? []).length === 0 ? (
             <EmptyState
               title="No scheduled sessions"
@@ -460,15 +571,19 @@ export default async function DashboardPage() {
                 <Card key={session.id} className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <h3 className="truncate text-sm font-semibold">{session.title}</h3>
+                      <h3 className="truncate text-sm font-semibold">
+                        {session.title}
+                      </h3>
                       <p className="mt-1 text-xs text-[var(--text-muted)]">
-                        {formatDateTime(session.starts_at)} ·{' '}
-                        {session.location ?? 'Online'}
+                        {formatDateTime(session.starts_at)} ·{" "}
+                        {session.location ?? "Online"}
                       </p>
                       {session.ground_station ? (
-                        <p className="mt-1 font-mono text-xs text-ion-300">
+                        <p className="mt-1 font-mono text-xs text-[var(--accent)]">
                           Ground station {session.ground_station}
-                          {session.norad_id ? ` · NORAD ${session.norad_id}` : ''}
+                          {session.norad_id
+                            ? ` · NORAD ${session.norad_id}`
+                            : ""}
                         </p>
                       ) : null}
                     </div>
@@ -483,7 +598,9 @@ export default async function DashboardPage() {
         </section>
 
         <section>
-          <h2 className="mb-4 text-lg font-semibold tracking-tight">Recent certificates</h2>
+          <h2 className="mb-4 text-lg font-semibold tracking-tight">
+            Recent certificates
+          </h2>
           {allCertificates.length === 0 ? (
             <EmptyState
               title="No certificates yet"
@@ -495,7 +612,9 @@ export default async function DashboardPage() {
                 <Card key={cert.id} className="p-4">
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
-                      <h3 className="truncate text-sm font-semibold">{cert.course_title}</h3>
+                      <h3 className="truncate text-sm font-semibold">
+                        {cert.course_title}
+                      </h3>
                       <p className="mt-1 font-mono text-xs text-[var(--text-muted)]">
                         {cert.code} · {formatDate(cert.issued_at)}
                       </p>

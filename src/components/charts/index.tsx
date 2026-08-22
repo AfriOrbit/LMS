@@ -33,16 +33,37 @@ import type { ReactNode } from 'react';
 /* -------------------------------------------------------------------------- */
 
 /** Identity. Assigned in this order, never cycled past the end. */
-export const CAT = ['#1d6ff0', '#e2620c', '#059567'] as const;
+/*
+ * Categorical order, validated rather than chosen by eye.
+ *
+ * These four ran through the palette validator against BOTH surfaces the
+ * charts now appear on — the white public pages and the near-black
+ * application — and pass every check on each: lightness band, chroma floor,
+ * colour-vision separation, and 3:1 contrast against the surface.
+ *
+ * The order matters and is not arbitrary. Green and amber were adjacent in the
+ * first arrangement and separated by only DeltaE 7.8 under protanopia, which is
+ * inside the "legal only with secondary encoding" band; moving purple between
+ * them lifts the worst adjacent pair to DeltaE 24. The amber was also darkened
+ * from #c98a06, which measured 2.87:1 on white — under the 3:1 floor.
+ *
+ * Assign in fixed order, never cycled. A fifth series folds into "Other".
+ */
+export const CAT = ['#1f8fd6', '#a86f00', '#8b5cf6', '#12a06d'] as const;
 
 /** Magnitude. One hue, light to dark. */
 export const SEQ = ['#d9edff', '#bce0ff', '#8ecdff', '#59b0ff', '#338ffb', '#1758dc'] as const;
 
 /** State. Reserved — never reused as "series 4". */
+/*
+ * Status is reserved. These never appear as "series 4" — a chart that paints an
+ * ordinary category in the critical red teaches the reader that red means
+ * nothing. They always ship with a word beside them, never colour alone.
+ */
 export const STATUS = {
-  good: '#059567',
-  warning: '#e2620c',
-  critical: '#dc2626',
+  good: '#12a06d',
+  warning: '#a86f00',
+  critical: '#e5484d',
 } as const;
 
 /** The chart surface. Gaps and rings are drawn in this so they read as air. */
@@ -123,7 +144,7 @@ function resolveSegments(segments: Segment[]): ResolvedSegment[] {
 /** Zero-data fallback. Deliberately shaped like the app's EmptyState. */
 export function ChartEmpty({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-8 text-center text-sm text-[var(--text-muted)]">
+    <div className="border border-dashed border-[var(--border)] px-4 py-8 text-center text-sm text-[var(--text-muted)]">
       {message}
     </div>
   );
@@ -208,7 +229,7 @@ export function ChartLegend({ items, force = false }: { items: LegendItem[]; for
         <li key={item.label} className="flex items-center gap-1.5">
           <span
             aria-hidden="true"
-            className="inline-block size-2.5 shrink-0 rounded-[2px]"
+            className="inline-block size-2.5 shrink-0 -[2px]"
             style={{ background: item.color }}
           />
           <span className="text-[var(--text)]">{item.label}</span>
@@ -763,14 +784,14 @@ export function Heatmap({
           <span>None</span>
           <span
             aria-hidden="true"
-            className="inline-block size-2.5 rounded-[2px]"
+            className="inline-block size-2.5 -[2px]"
             style={{ background: AXIS }}
           />
           {SEQ.map((hex) => (
             <span
               key={hex}
               aria-hidden="true"
-              className="inline-block size-2.5 rounded-[2px]"
+              className="inline-block size-2.5 -[2px]"
               style={{ background: hex }}
             />
           ))}

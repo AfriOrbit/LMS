@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
 import { publicEnv } from '@/lib/env';
+import { ThemeScript } from '@/components/theme';
 
 import './globals.css';
 
@@ -51,10 +52,23 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-dvh antialiased">
+      <head>
+        {/*
+          Before <body>, deliberately. This sets data-theme from the stored
+          choice (or the OS preference) synchronously, so the first paint is
+          already the right colour. Anything that runs after hydration paints
+          light first and corrects a frame later — the flash every theme
+          toggle ships with.
+
+          `suppressHydrationWarning` on <html> is required because this script
+          mutates the element the server just rendered.
+        */}
+        <ThemeScript />
+      </head>
+      <body className="min-h-dvh">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-ion-600 focus:px-4 focus:py-2 focus:text-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-[var(--invert-bg)] focus:px-4 focus:py-2 focus:text-[var(--invert-fg)]"
         >
           Skip to content
         </a>

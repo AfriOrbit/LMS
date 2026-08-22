@@ -71,8 +71,8 @@ export default async function LabAssignmentPage({
             <Card
               className={
                 report.passed
-                  ? 'border-signal-500/35 bg-signal-500/5'
-                  : 'border-alert-500/35 bg-alert-500/5'
+                  ? 'border-[var(--good-line)] bg-[var(--good-bg)]'
+                  : 'border-[var(--bad-line)] bg-[var(--bad-bg)]'
               }
             >
               <div className="flex items-center justify-between gap-4">
