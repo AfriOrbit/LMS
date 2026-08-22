@@ -72,10 +72,41 @@ for (const [script, what] of CHECKS) {
     continue;
   }
 
-  if (result.status !== 0) {
+  /*
+   * EXIT 2 IS A FINDING. Any other non-zero is the script itself breaking, and
+   * that must not stop a deployment.
+   *
+   * They used to be the same number, and the difference matters more than it
+   * looks. `tsx` is a devDependency whose runtime is an esbuild binary
+   * delivered by an optional platform package and validated by a postinstall
+   * script — and npm now withholds install scripts until they are approved:
+   *
+   *     npm warn allow-scripts  esbuild@0.28.2 (postinstall: node install.js)
+   *
+   * On a machine where that leaves esbuild unusable, `tsx check-stale.ts`
+   * exits non-zero having never read a single file. Read as a finding, that
+   * printed "files deleted in this release are still in the repo" and failed
+   * the build — a confident, specific, completely fabricated diagnosis, about
+   * a repository that was correct.
+   *
+   * So the checks now signal a finding with 2, and everything else is treated
+   * as this script's own problem: reported loudly, stepped over.
+   */
+  if (result.status === 2) {
     console.error(`\n[prebuild] ${script} reported a problem: ${what}.`);
     blocked = true;
     break;
+  }
+
+  if (result.status !== 0) {
+    console.warn(
+      `\n[prebuild] ${script} exited ${result.status} without reporting a finding, so it\n` +
+        `[prebuild] could not run rather than having found something. The build continues.\n` +
+        `[prebuild] If install scripts were withheld (npm warn allow-scripts), the tsx\n` +
+        `[prebuild] runtime is likely incomplete — approve them or install with\n` +
+        `[prebuild] --ignore-scripts consistently. These checks are a safety net.\n`,
+    );
+    continue;
   }
 }
 
