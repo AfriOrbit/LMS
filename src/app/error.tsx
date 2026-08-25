@@ -38,9 +38,27 @@ export default function ErrorPage({
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">
         This page could not be rendered
       </h1>
+
+      {/*
+        PRESENCE OF A DIGEST IS ITSELF THE DIAGNOSIS, and this page used to
+        throw that away by asserting "the failure happened on the server"
+        unconditionally.
+
+        Next attaches `digest` when a SERVER component throws — it is the hash
+        that appears in the platform's Runtime Log. An error thrown in the
+        BROWSER, by a client component, reaches this same boundary with no
+        digest at all, because there is no server-side log line to point at.
+
+        Telling someone to search the Runtime Logs for a client-side error
+        sends them to a log that will never contain it. They search, find
+        nothing, and reasonably conclude the logging is broken. So the two
+        cases now say different things, and the absent digest is reported as a
+        fact rather than hidden.
+      */}
       <p className="mt-3 text-sm text-[var(--text-muted)]">
-        The failure happened on the server, so retrying may well work. If it does not,
-        the reference below identifies this exact error in the server log.
+        {error.digest
+          ? 'The failure happened on the server, so retrying may well work. If it does not, the reference below identifies this exact error in the server log.'
+          : 'This one failed in the browser rather than on the server — there is no server log entry for it. Retrying may well work.'}
       </p>
 
       {error.digest ? (
@@ -70,19 +88,30 @@ export default function ErrorPage({
         >
           Check configuration
         </a>
+        <a
+          href="/api/health/db"
+          className="border border-[var(--border)] px-4 py-2 text-sm font-medium hover:bg-[var(--bg-hover)]"
+        >
+          Check database
+        </a>
       </div>
 
-      <p className="mt-8 text-xs text-[var(--text-muted)]">
-        Administrators: open the deployment&rsquo;s <strong>Runtime Logs</strong> (not the build
-        logs) and search for <code className="font-mono">AFRIORBIT_SERVER_ERROR</code>
-        {error.digest ? (
-          <>
-            {' '}
-            or <code className="font-mono">{error.digest}</code>
-          </>
-        ) : null}
-        . The full message and stack are there.
-      </p>
+      {error.digest ? (
+        <p className="mt-8 text-xs text-[var(--text-muted)]">
+          Administrators: open the deployment&rsquo;s <strong>Runtime Logs</strong> (not the
+          build logs) and search for <code className="font-mono">{error.digest}</code> or{' '}
+          <code className="font-mono">AFRIORBIT_SERVER_ERROR</code>. The full message and stack
+          are there.
+        </p>
+      ) : (
+        <p className="mt-8 text-xs text-[var(--text-muted)]">
+          Administrators: <strong>no error reference was issued</strong>, which means this threw
+          in the browser, not on the server &mdash; the Runtime Logs will not contain it. Open
+          the browser console (F12 &rarr; Console) for the real message. Before that, try{' '}
+          <strong>Check database</strong> above: a missing table is the most common cause, and it
+          surfaces here rather than in the log.
+        </p>
+      )}
     </div>
   );
 }

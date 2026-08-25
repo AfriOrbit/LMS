@@ -93,19 +93,48 @@ export async function registerAction(
   }
 
   if (data.user) {
-    // Email confirmation is on, so signUp returns no session — there is no
-    // authenticated client yet and an RLS-scoped update would be refused.
-    // The subject is the user we just created, so the service-role client is
-    // the correct tool here rather than a shortcut.
-    const admin = createSupabaseAdminClient();
-    await admin
-      .from('profiles')
-      .update({
-        technical_level: parsed.data.technicalLevel,
-        accepted_terms_at: new Date().toISOString(),
-      })
-      .eq('id', data.user.id);
+    /*
+     * PAST THIS LINE THE ACCOUNT ALREADY EXISTS, so nothing below may throw.
+     *
+     * `auth.signUp` has committed. Everything that follows is enrichment —
+     * two profile columns and an audit row — and `createSupabaseAdminClient()`
+     * throws when `SUPABASE_SERVICE_ROLE_KEY` is absent. Unguarded, that turned
+     * a SUCCESSFUL registration into a 500, and the resulting state is the
+     * worst one available: the learner sees a crash, assumes nothing happened,
+     * tries again, and is told the address is already registered. They cannot
+     * proceed and they cannot start over.
+     *
+     * So the account is allowed to stand on its own. `technical_level` and
+     * `accepted_terms_at` are editable later from the profile page, and the
+     * missing audit row is a gap in the log rather than a broken signup.
+     */
+    try {
+      // Email confirmation is on, so signUp returns no session — there is no
+      // authenticated client yet and an RLS-scoped update would be refused.
+      // The subject is the user we just created, so the service-role client is
+      // the correct tool here rather than a shortcut.
+      const admin = createSupabaseAdminClient();
+      const { error: profileError } = await admin
+        .from('profiles')
+        .update({
+          technical_level: parsed.data.technicalLevel,
+          accepted_terms_at: new Date().toISOString(),
+        })
+        .eq('id', data.user.id);
 
+      if (profileError) {
+        console.error('[register] could not enrich profile', profileError.message);
+      }
+    } catch (err) {
+      console.error(
+        '[register] account created, but profile enrichment failed. This is ' +
+          'usually a missing SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY), ' +
+          'or a schema that has never been applied. See /api/health/db.',
+        err,
+      );
+    }
+
+    // Already internally guarded — it must never break a signup.
     await auditAsSystem('auth.register', {
       actorId: data.user.id,
       actorEmail: parsed.data.email,

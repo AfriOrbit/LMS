@@ -19,11 +19,49 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
  * network locations. The salt must be stable across instances but is otherwise
  * arbitrary; rotating it resets all rate-limit buckets, which is acceptable.
  */
+/**
+ * A MISSING SALT MUST NOT TAKE REGISTRATION DOWN, and it used to.
+ *
+ * `serverEnv.ipHashSalt` throws when `IP_HASH_SALT` is unset, and this function
+ * is the FIRST server call in `registerAction` — before validation results are
+ * used, before Supabase is touched. So a deployment that had every Supabase
+ * variable set correctly, and a database that was perfectly healthy, still
+ * answered every registration attempt with a blank 500. The one variable that
+ * has nothing to do with Supabase was the one breaking the Supabase-looking
+ * page, which sent the search in exactly the wrong direction.
+ *
+ * The fallback is an ephemeral salt generated once per process. What that costs
+ * is real but narrow: rate-limit buckets no longer agree between serverless
+ * instances, and hashes stop correlating with older audit rows. What it does
+ * NOT cost is privacy — a random secret salt is, if anything, a stronger hash
+ * input than a configured one. Trading cross-instance correlation for a working
+ * signup form is the right trade; trading it silently is not, so it is logged
+ * once at startup-of-use rather than per request.
+ */
+let ephemeralSalt: string | null = null;
+
+function ipHashSalt(): string {
+  try {
+    return serverEnv.ipHashSalt;
+  } catch {
+    if (!ephemeralSalt) {
+      ephemeralSalt = randomBytes(32).toString('hex');
+      console.error(
+        '[security] IP_HASH_SALT is not set. Using a random per-process salt so ' +
+          'registration and sign-in keep working. Rate-limit buckets will not be ' +
+          'shared between instances and audit hashes will not correlate with older ' +
+          'rows. Set IP_HASH_SALT (openssl rand -hex 32) and redeploy.',
+      );
+    }
+    return ephemeralSalt;
+  }
+}
+
 export async function clientIpHash(): Promise<string> {
   const h = await headers();
   const forwarded = h.get('x-forwarded-for') ?? '';
   const ip = forwarded.split(',')[0]?.trim() || h.get('x-real-ip') || 'unknown';
-  return createHash('sha256').update(`${serverEnv.ipHashSalt}:${ip}`).digest('hex');
+  return createHash('sha256').update(`${ipHashSalt()}:${ip}`).digest('hex');
 }
 
 export async function clientUserAgent(): Promise<string> {
@@ -56,18 +94,58 @@ export async function rateLimit(
   limit: number,
   windowSeconds: number,
 ): Promise<RateLimitResult> {
-  const admin = createSupabaseAdminClient();
-  const { data, error } = await admin.schema('app').rpc('rate_limit_hit', {
-    p_bucket: `${scope}:${key}`,
-    p_limit: limit,
-    p_window_seconds: windowSeconds,
+  const open = (): RateLimitResult => ({
+    allowed: true,
+    hits: 0,
+    limit,
+    resetAt: new Date().toISOString(),
   });
 
-  if (error) {
-    // Fail open on infrastructure error rather than locking everyone out,
-    // but make the failure loud in the logs.
-    console.error('[rate-limit] backend error', error.message);
-    return { allowed: true, hits: 0, limit, resetAt: new Date().toISOString() };
+  /*
+   * `createSupabaseAdminClient()` USED TO SIT OUTSIDE THIS GUARD, which made
+   * the fail-open below a promise this function could not keep.
+   *
+   * It throws — on absent Supabase config, and on a missing
+   * SUPABASE_SERVICE_ROLE_KEY. The `if (error)` path caught RPC failures and
+   * correctly refused to lock everyone out, but a constructor throw sailed past
+   * it and became a 500 on the registration page. So the one branch written to
+   * degrade gracefully was bypassed by the failure most likely to occur, and a
+   * deployment missing a single server-only key could not register anyone.
+   */
+  let data: unknown;
+  try {
+    const admin = createSupabaseAdminClient();
+    const res = await admin.schema('app').rpc('rate_limit_hit', {
+      p_bucket: `${scope}:${key}`,
+      p_limit: limit,
+      p_window_seconds: windowSeconds,
+    });
+    if (res.error) {
+      // Fail open on infrastructure error rather than locking everyone out,
+      // but make the failure loud in the logs.
+      console.error('[rate-limit] backend error', res.error.message);
+      return open();
+    }
+    data = res.data;
+  } catch (err) {
+    console.error(
+      `[rate-limit] cannot reach the limiter for "${scope}" — failing open. ` +
+        'This is usually a missing SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY).',
+      err,
+    );
+    return open();
+  }
+
+  /*
+   * A SUCCESSFUL RPC THAT RETURNS NOTHING is not hypothetical: a half-applied
+   * schema can leave `rate_limit_hit` present but returning NULL, which reports
+   * no error at all. Reading `.allowed` off that throws a TypeError from inside
+   * the one function whose entire contract is to never block a request, and the
+   * 500 lands on the registration page again by a different route.
+   */
+  if (!data || typeof data !== 'object') {
+    console.error('[rate-limit] rate_limit_hit returned no result — failing open.');
+    return open();
   }
 
   const result = data as {

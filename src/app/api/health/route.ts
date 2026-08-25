@@ -131,6 +131,31 @@ export async function GET() {
     NEXT_PUBLIC_SITE_URL: shape(BUILD_SITE_URL),
   };
 
+  /*
+   * WHAT THE APP CONCLUDED, not what the dashboard contains.
+   *
+   * `siteUrl` is printed on every issued certificate and is where Stripe
+   * returns a buyer after payment, and it is DERIVED: explicit value, else
+   * https://<NEXT_PUBLIC_LMS_HOST>, else a compiled-in default. So an empty
+   * NEXT_PUBLIC_SITE_URL is fine and an empty NEXT_PUBLIC_LMS_HOST alongside
+   * it is not — the fallback silently becomes a hostname nobody has pointed at
+   * anything, and the failure surfaces months later on a printed certificate.
+   *
+   * Values, not shapes, and that is safe: both are NEXT_PUBLIC_, already in
+   * every page this deployment serves.
+   */
+  const resolved = {
+    siteUrl:
+      BUILD_SITE_URL ||
+      `https://${process.env.NEXT_PUBLIC_LMS_HOST?.trim() || 'develop.afriorbit.space'}`,
+    via: BUILD_SITE_URL
+      ? 'NEXT_PUBLIC_SITE_URL'
+      : process.env.NEXT_PUBLIC_LMS_HOST?.trim()
+        ? 'NEXT_PUBLIC_LMS_HOST'
+        : 'compiled-in default — set NEXT_PUBLIC_SITE_URL',
+    NEXT_PUBLIC_LMS_HOST: process.env.NEXT_PUBLIC_LMS_HOST?.trim() || null,
+  };
+
   const runtimeOnly = {
     SUPABASE_SERVICE_ROLE_KEY: {
       ...shape(process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY ?? ''),
@@ -179,7 +204,20 @@ export async function GET() {
       ['NEXT_PUBLIC_SUPABASE_URL', BUILD_SUPABASE_URL],
       ['NEXT_PUBLIC_SUPABASE_ANON_KEY', BUILD_SUPABASE_ANON],
       ['NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', BUILD_SUPABASE_ANON],
-      ['NEXT_PUBLIC_SITE_URL', BUILD_SITE_URL],
+      /*
+       * NEXT_PUBLIC_SITE_URL is deliberately NOT listed here.
+       *
+       * It is optional — it falls back to the LMS host — so an empty one is a
+       * legitimate configuration, not the inlining fault this list describes.
+       * Including it produced a report that said `ok: true`, `blocking: []`,
+       * `warnings: []` and then, three fields later, "Redeploy with build cache
+       * UNTICKED" — sending someone to rebuild a deployment that was already
+       * correct. A diagnostic that contradicts itself gets ignored wholesale,
+       * including on the day it is right.
+       *
+       * Where it actually resolves to is reported under `resolved` instead,
+       * which is the thing worth knowing.
+       */
     ] as const
   )
     .filter(([name, built]) => seen.includes(name) && !built)
@@ -205,6 +243,7 @@ export async function GET() {
 
       buildTime,
       runtimeOnly,
+      resolved,
 
       // Names only. Compare `notInjectedForThisEnvironment` against what your
       // dashboard shows — a name here that is not in your dashboard, or in the

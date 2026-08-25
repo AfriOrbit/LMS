@@ -120,4 +120,14 @@ FIX — make the repository match exactly, from inside the extracted release:
 or delete the paths listed above through the GitHub interface
 (Add file → ... → Delete directory / Delete file), then redeploy.
 `);
-process.exit(1);
+/*
+ * EXIT 2 MEANS "I FOUND A PROBLEM". Anything else non-zero means this script
+ * itself broke.
+ *
+ * `prebuild` runs this on Vercel, so it can stop a deployment — and it must
+ * only ever do that on a real finding. When the two were both exit 1 they were
+ * indistinguishable, so a runner that failed to start (a missing esbuild
+ * binary, an unapproved install script, an out-of-memory kill) looked exactly
+ * like a genuine stale-file report and took production down over nothing.
+ */
+process.exit(2);
