@@ -29,6 +29,9 @@ const STORAGE_KEY = 'afriorbit-theme';
  * stylesheet keys off. It is deliberately tiny and dependency-free, because
  * anything in this position blocks first paint.
  *
+ * Embedded in an LMS lesson or the LMS simulators page (same origin), the LMS's own resolved theme
+ * (localStorage 'theme') wins, so the frame matches the page around it.
+ *
  * The try/catch is not decorative. `localStorage` throws — not returns null,
  * throws — in a sandboxed iframe and in Safari's private mode with cookies
  * blocked. An uncaught throw here would leave the page unstyled.
@@ -36,6 +39,7 @@ const STORAGE_KEY = 'afriorbit-theme';
 export function ThemeScript() {
   const js = `(function(){try{
 var s=localStorage.getItem('${STORAGE_KEY}');
+if(window.self!==window.top){var l=localStorage.getItem('theme');if(l==='light'||l==='dark')s=l;}
 var m=window.matchMedia('(prefers-color-scheme: dark)').matches;
 var t=(s==='light'||s==='dark')?s:(m?'dark':'light');
 document.documentElement.setAttribute('data-theme',t);
