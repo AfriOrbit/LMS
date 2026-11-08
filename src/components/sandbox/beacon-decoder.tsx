@@ -2,7 +2,13 @@
 
 import { useMemo, useState, useTransition } from 'react';
 
-import { saveTelemetryCaptureAction } from '@/lib/actions/learning';
+// The simulator host is static: there is no lab record to save to. The LMS
+// keeps learner work in Frappe, so the save button is hidden here and this stub
+// only keeps the call site compiling.
+const CAN_SAVE = false;
+async function saveTelemetryCaptureAction(_input: unknown): Promise<{ ok: boolean; message?: string }> {
+  return { ok: false, message: 'Saving captures is not available in this build.' };
+}
 import {
   decodeBeacon,
   encodeBeacon,
@@ -189,7 +195,7 @@ export function BeaconDecoderSandbox() {
             />
           </Field>
 
-          {decoded ? (
+          {decoded && CAN_SAVE ? (
             <Button
               size="sm"
               variant="secondary"
