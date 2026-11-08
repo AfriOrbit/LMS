@@ -1,0 +1,94 @@
+{
+  "redirects": [
+    {
+      "source": "/catalog/introduction-to-space-systems",
+      "destination": "https://lms.afriorbit.space/lms/courses/introduction-to-space-systems",
+      "permanent": true
+    },
+    {
+      "source": "/learn/introduction-to-space-systems/:path*",
+      "destination": "https://lms.afriorbit.space/lms/courses/introduction-to-space-systems",
+      "permanent": true
+    },
+    {
+      "source": "/learn/introduction-to-space-systems",
+      "destination": "https://lms.afriorbit.space/lms/courses/introduction-to-space-systems",
+      "permanent": true
+    },
+    {
+      "source": "/catalog/electrical-power-subsystem",
+      "destination": "https://lms.afriorbit.space/lms/courses/electrical-power-subsystem",
+      "permanent": true
+    },
+    {
+      "source": "/learn/electrical-power-subsystem/:path*",
+      "destination": "https://lms.afriorbit.space/lms/courses/electrical-power-subsystem",
+      "permanent": true
+    },
+    {
+      "source": "/learn/electrical-power-subsystem",
+      "destination": "https://lms.afriorbit.space/lms/courses/electrical-power-subsystem",
+      "permanent": true
+    },
+    {
+      "source": "/catalog/onboard-computer",
+      "destination": "https://lms.afriorbit.space/lms/courses/on-board-computer-and-data-handling",
+      "permanent": true
+    },
+    {
+      "source": "/learn/onboard-computer/:path*",
+      "destination": "https://lms.afriorbit.space/lms/courses/on-board-computer-and-data-handling",
+      "permanent": true
+    },
+    {
+      "source": "/learn/onboard-computer",
+      "destination": "https://lms.afriorbit.space/lms/courses/on-board-computer-and-data-handling",
+      "permanent": true
+    },
+    {
+      "source": "/catalog/lora-for-satellite-iot",
+      "destination": "https://lms.afriorbit.space/lms/courses/lora-for-satellite-iot",
+      "permanent": true
+    },
+    {
+      "source": "/learn/lora-for-satellite-iot/:path*",
+      "destination": "https://lms.afriorbit.space/lms/courses/lora-for-satellite-iot",
+      "permanent": true
+    },
+    {
+      "source": "/learn/lora-for-satellite-iot",
+      "destination": "https://lms.afriorbit.space/lms/courses/lora-for-satellite-iot",
+      "permanent": true
+    },
+    {
+      "source": "/catalog/flight-computer-firmware",
+      "destination": "https://lms.afriorbit.space/lms/courses/flight-computer-firmware",
+      "permanent": true
+    },
+    {
+      "source": "/learn/flight-computer-firmware/:path*",
+      "destination": "https://lms.afriorbit.space/lms/courses/flight-computer-firmware",
+      "permanent": true
+    },
+    {
+      "source": "/learn/flight-computer-firmware",
+      "destination": "https://lms.afriorbit.space/lms/courses/flight-computer-firmware",
+      "permanent": true
+    },
+    {
+      "source": "/catalog/simulators",
+      "destination": "https://lms.afriorbit.space/sims/",
+      "permanent": true
+    },
+    {
+      "source": "/catalog",
+      "destination": "https://lms.afriorbit.space/lms/courses",
+      "permanent": true
+    },
+    {
+      "source": "/((?!widget\\.js$|embed\\.js$).*)",
+      "destination": "https://lms.afriorbit.space/lms/courses",
+      "permanent": true
+    }
+  ]
+}
