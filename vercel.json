@@ -77,7 +77,7 @@
     },
     {
       "source": "/catalog/simulators",
-      "destination": "https://lms.afriorbit.space/sims/",
+      "destination": "https://lms.afriorbit.space/lms/simulators",
       "permanent": true
     },
     {
