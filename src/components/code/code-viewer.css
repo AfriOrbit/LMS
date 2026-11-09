@@ -1,0 +1,137 @@
+/* Lab code viewer (src/components/code/code-viewer.tsx). Fills its frame: header, optional file
+   tree, then a scrolling code panel with line numbers. Colours follow the site's light/dark tokens;
+   syntax colours are GitHub's, which most learners already read fluently. */
+
+.cv {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 320px;
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.cv-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+.cv-crumbs {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+.cv-repo { color: var(--text-muted); }
+.cv-sep { color: var(--text-muted); padding: 0 4px; }
+.cv-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.cv-actions a,
+.cv-actions button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 9px;
+  background: var(--bg-card);
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cv-actions a:hover,
+.cv-actions button:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+
+.cv-body { display: flex; flex: 1; min-height: 0; }
+.cv-split { flex-direction: row; }
+
+.cv-tree {
+  width: 220px;
+  flex-shrink: 0;
+  overflow: auto;
+  border-right: 1px solid var(--border);
+  padding: 8px 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+.cv-tree-root { padding: 2px 12px 6px; color: var(--text-muted); }
+.cv-tree button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 3px 12px;
+  background: none;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cv-tree button:hover { background: var(--bg-hover); }
+.cv-tree button.on { background: var(--accent-bg); color: var(--accent); }
+.cv-branch { color: var(--text-muted); }
+
+.cv-code { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.cv-file {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+.cv-file span { color: var(--text-muted); }
+.cv-scroll { display: flex; flex: 1; overflow: auto; }
+.cv-gutter,
+.cv-src {
+  margin: 0;
+  padding: 10px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  tab-size: 4;
+}
+.cv-gutter {
+  position: sticky;
+  left: 0;
+  padding: 10px 10px 10px 14px;
+  text-align: right;
+  color: var(--text-muted);
+  opacity: 0.6;
+  background: var(--bg-card);
+  user-select: none;
+  border-right: 1px solid var(--border);
+}
+.cv-src { padding-left: 14px; padding-right: 24px; flex: 1; }
+.cv-note { padding: 16px; color: var(--text-muted); }
+
+@media (max-width: 640px) {
+  .cv-split { flex-direction: column; }
+  .cv-tree { width: auto; max-height: 30%; border-right: 0; border-bottom: 1px solid var(--border); }
+  .cv-actions a:nth-child(-n + 2) { display: none; }
+}
+
+/* Syntax colours: GitHub light / dark. */
+.hljs-comment, .hljs-quote { color: #6e7781; font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-type, .hljs-meta .hljs-keyword { color: #cf222e; }
+.hljs-string, .hljs-regexp, .hljs-meta .hljs-string { color: #0a3069; }
+.hljs-number, .hljs-literal, .hljs-built_in, .hljs-variable { color: #0550ae; }
+.hljs-title, .hljs-title.function_, .hljs-section { color: #8250df; }
+.hljs-meta, .hljs-attr, .hljs-attribute, .hljs-symbol { color: #953800; }
+.hljs-params { color: inherit; }
+
+[data-theme='dark'] .hljs-comment, [data-theme='dark'] .hljs-quote { color: #8b949e; }
+[data-theme='dark'] .hljs-keyword, [data-theme='dark'] .hljs-selector-tag,
+[data-theme='dark'] .hljs-type, [data-theme='dark'] .hljs-meta .hljs-keyword { color: #ff7b72; }
+[data-theme='dark'] .hljs-string, [data-theme='dark'] .hljs-regexp,
+[data-theme='dark'] .hljs-meta .hljs-string { color: #a5d6ff; }
+[data-theme='dark'] .hljs-number, [data-theme='dark'] .hljs-literal,
+[data-theme='dark'] .hljs-built_in, [data-theme='dark'] .hljs-variable { color: #79c0ff; }
+[data-theme='dark'] .hljs-title, [data-theme='dark'] .hljs-title.function_,
+[data-theme='dark'] .hljs-section { color: #d2a8ff; }
+[data-theme='dark'] .hljs-meta, [data-theme='dark'] .hljs-attr,
+[data-theme='dark'] .hljs-attribute, [data-theme='dark'] .hljs-symbol { color: #ffa657; }
